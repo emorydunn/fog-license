@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <title>Thank you for your purchase</title>
+  </head>
+
+  <body>
+    <p>You just bought #(name) for #(amount).</p>
+
+    #if(showProcessingMessage):
+    <p>
+      Your order is still processing, you'll receive an email when it's
+      complete.
+    </p>
+    #endif #if(sub):
+    <p>Updates will start next year!</p>
+    #else:
+    <p>Updates won't start next year!</p>
+    #endif #if(receiptUrl):
+    <p>View your <a href="#(receiptUrl)">full receipt</a>.</p>
+    #endif
+  </body>
+</html>

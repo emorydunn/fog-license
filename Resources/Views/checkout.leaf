@@ -1,0 +1,140 @@
+<html>
+  <head>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="/js/payment.js" defer></script>
+    <link rel="stylesheet" href="/css/bulma.min.css" />
+    <!-- <link rel="stylesheet" href="/global.css"> -->
+    <link rel="stylesheet" href="/css/checkout.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <section>
+      <div class="container">
+        <div class="columns is-centered">
+          <div class="column is-half">
+            <div class="modal is-active">
+              <div class="modal-background"></div>
+              <div class="modal-card">
+                <form id="payment-form">
+                  <header class="modal-card-head">
+                    <p class="modal-card-title">
+                      Buy #(appName) and keep it forever
+                    </p>
+                    <button
+                      class="delete"
+                      aria-label="close"
+                      type="button"
+                    ></button>
+                  </header>
+                  <section class="modal-card-body">
+                    <div class="block">
+                      <article class="media">
+                        <figure class="media-left">
+                          <p class="image is-64x64">
+                            <img src="#(icon)" />
+                          </p>
+                        </figure>
+                        <div class="media-content">
+                          <div class="content">
+                            <p class="title is-4">
+                              Buy #(appName) for #(purchasePrice)
+                            </p>
+                            <p class="subtitle is-6">
+                              Includes one full year of updates and new
+                              features.
+                            </p>
+                          </div>
+                        </div>
+                        <div class="media-right"></div>
+                      </article>
+                    </div>
+
+                    <div class="block">
+                      <div class="field">
+                        <div class="control">
+                          <label class="checkbox">
+                            <input
+                              id="subscribe-check"
+                              type="checkbox"
+                              checked
+                            />
+                            Also, keep me updated after the first year.
+                          </label>
+                          <div class="content">
+                            <ul>
+                              <li>
+                                You'll be charged <b>#(updatePrice)</b> starting
+                                <b>#(startDate)</b>.
+                              </li>
+                              <li>
+                                Cancel anytime and keep what you have, forever.
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="field">
+                        <label>Name</label>
+                        <div class="control">
+                          <input
+                            id="name"
+                            class="input"
+                            type="text"
+                            required
+                            value="Emory Dunn"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label>Email Address</label>
+                      <div class="control">
+                        <input
+                          id="email"
+                          class="input"
+                          type="email"
+                          required
+                          value="emory@emorydunn.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="block" id="payment-element">
+                      <!--Stripe.js injects the Payment Element-->
+                    </div>
+                    <div id="payment-message" class="hidden"></div>
+                  </section>
+                  <footer class="modal-card-foot">
+                    <button
+                      id="submit"
+                      class="button is-large is-fullwidth is-success is-outlined"
+                      type="submit"
+                    >
+                      <div class="spinner hidden" id="spinner"></div>
+                      <span id="button-text">Checkout</span>
+                    </button>
+                  </footer>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script type="text/javascript">
+      const bundleID = "#(bundleID)";
+      const paymentOptions = {
+        mode: "payment",
+        amount: #(amount),
+        currency: "#(currency)",
+        setup_future_usage: "off_session",
+        appearance: {
+          theme: "stripe"
+        },
+      };
+    </script>
+  </body>
+</html>
