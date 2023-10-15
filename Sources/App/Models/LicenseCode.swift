@@ -16,15 +16,18 @@ import StripeKit
 /// A code is made up of three little endian bytes:
 ///
 /// 0. The App ID
-/// 1. `UInt8.min..<UInt8.max`
-/// 2. `UInt8.min..<0x42`
+/// 1. Random 8-bit number
+/// 2. Random 8-bit number within a clamped range
+/// 3. Random 8-bit number (unused)
 ///
-/// Validating a code can be done by checking byte 2 is in the range of `0..<0x42` and that byte 0 is the App ID.
+/// Byte 2 is clamped to a set range to act as magic number for quickly verifying the code is valid and not just a random guess.
+///
 /// - Note: This should result in 17,152 possible license codes per application, but if more are
 /// 	needed the _Secret Fourth Byte_ can be enabled, utilizing the full 32-bit backing for 4,390,912 codes.
 struct LicenseCode: Codable, ExpressibleByIntegerLiteral {
 
-	static let byteZeroRange = UInt8.min..<0x42
+	static var codeRange = 0..<3
+	static var magicByteRange = UInt8.min..<0x42
 
 	let number: UInt32
 
@@ -37,18 +40,18 @@ struct LicenseCode: Codable, ExpressibleByIntegerLiteral {
 	}
 
 	init(_ bytes: UInt8...) {
-		self.number = UInt32(from: bytes, range: 0..<3)
+		self.number = UInt32(from: bytes, range: LicenseCode.codeRange)
 	}
 
 	init(appID: UInt8) {
 		let bytes = [
-			// UInt8.random(in: UInt8.min..<UInt8.max), // Secret extra byte in case I run out of codes
-			UInt8.random(in: LicenseCode.byteZeroRange),
+			UInt8.random(in: UInt8.min..<UInt8.max), // Secret extra byte in case I run out of codes
+			UInt8.random(in: LicenseCode.magicByteRange),
 			UInt8.random(in: UInt8.min..<UInt8.max),
 			appID,
 		]
 
-		self.number = UInt32(from: bytes, range: 0..<3)
+		self.number = UInt32(from: bytes, range: LicenseCode.codeRange)
 	}
 
 	init(from decoder: Decoder) throws {
@@ -69,7 +72,7 @@ struct LicenseCode: Codable, ExpressibleByIntegerLiteral {
 		let highByte = bytes[2]
 		let idByte = bytes[0]
 
-		return idByte == appID && LicenseCode.byteZeroRange.contains(highByte)
+		return idByte == appID && LicenseCode.magicByteRange.contains(highByte)
 	}
 
 }
@@ -130,4 +133,20 @@ final class LicenseModel: Model, Content {
 		self.$application.id = application
 		self.$user.id = user
 	}
+
+	func generateSoftwareLicense(on db: Database) async throws -> SoftwareLicense {
+		return SoftwareLicense(code: code,
+							   application: application.bundleID,
+							   name: user.name,
+							   email: user.email,
+							   date: date)
+	}
+}
+
+struct SoftwareLicense: Codable {
+	let code: LicenseCode
+	let application: String
+	let name: String
+	let email: String
+	let date: Date
 }
