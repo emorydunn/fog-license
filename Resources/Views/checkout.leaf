@@ -123,18 +123,5 @@
         </div>
       </div>
     </section>
-
-    <script type="text/javascript">
-      const bundleID = "#(bundleID)";
-      const paymentOptions = {
-        mode: "payment",
-        amount: #(amount),
-        currency: "#(currency)",
-        setup_future_usage: "off_session",
-        appearance: {
-          theme: "stripe"
-        },
-      };
-    </script>
   </body>
 </html>

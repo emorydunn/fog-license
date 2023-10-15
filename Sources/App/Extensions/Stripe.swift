@@ -50,6 +50,23 @@ extension PaymentIntent {
 		}
 
 		return (amount / 100).formatted(.currency(code: currency.rawValue))
+	}
 
+	var statusMessage: String {
+		switch status {
+		case .none:
+			return ""
+		case .succeeded:
+			return "Payment succeeded!"
+		case .processing:
+			return "Your payment is processing."
+		case .canceled:
+			return "The payment was cancelled."
+		case .requiresPaymentMethod:
+			return "Your payment was not successful, please try again."
+
+		default:
+			return "Something went wrong."
+		}
 	}
 }

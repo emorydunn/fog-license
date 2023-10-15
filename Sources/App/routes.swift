@@ -7,6 +7,7 @@ func routes(_ app: Application) throws {
 	try app.register(collection: AppController())
 	try app.register(collection: UserController())
 	try app.register(collection: WebhookController())
+	try app.register(collection: CheckoutController())
 
 
 

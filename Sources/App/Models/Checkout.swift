@@ -12,25 +12,15 @@ import Vapor
 struct CheckoutContext: Encodable {
 	let appName: String
 	let bundleID: String
-	let amount: Int
-	let currency: String
 	let purchasePrice: String
 	let updatePrice: String
 	let icon: String
 	let startDate: String
 
-	init?(_ name: String, bundleID: String, icon: String, purchasePrice: Price, subPrice: Price) {
+	init(_ name: String, bundleID: String, icon: String, purchasePrice: Price, subPrice: Price) {
 		self.appName = name
 		self.bundleID = bundleID
 		self.icon = icon
-
-		guard
-			let purchaseAmount = purchasePrice.unitAmount,
-			let currency = purchasePrice.currency
-		else { return nil }
-
-		self.amount = purchaseAmount
-		self.currency = currency.rawValue
 
 		self.purchasePrice = purchasePrice.formattedAmount
 		self.updatePrice = subPrice.formattedAmount

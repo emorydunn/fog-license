@@ -2,6 +2,7 @@
 const stripe = Stripe("pk_test_5JCEhDcc0sN6ci9NIGdEhjPr");
 
 let elements;
+let appBundleID;
 
 const form = document.getElementById("payment-form");
 const submitButton = document.getElementById("submit");
@@ -19,9 +20,18 @@ const handleError = (error) => {
 
 async function initialize() {
   console.log("initialize payment elements");
-  elements = stripe.elements(paymentOptions);
 
-  console.log(form);
+  const checkoutIntentResponse = await fetch(window.location, {
+    method: "OPTIONS",
+    headers: { "Content-Type": "application/json" },
+  });
+  const { bundleID, paymentOptions } = await checkoutIntentResponse.json();
+
+  console.log(bundleID);
+  console.log(paymentOptions);
+
+  appBundleID = bundleID;
+  elements = stripe.elements(paymentOptions);
 
   const paymentElementOptions = {
     layout: "tabs",
@@ -53,12 +63,6 @@ async function handleSubmit(e) {
     return;
   }
 
-  let formData = {
-    name: document.getElementById("name").value,
-    email: document.getElementById("email").value,
-    subscribe: document.getElementById("subscribe-check").checked,
-  };
-
   const { clientSecret } = await getPaymentIntent();
 
   console.log("Got secret: " + clientSecret);
@@ -67,7 +71,7 @@ async function handleSubmit(e) {
     elements,
     clientSecret,
     confirmParams: {
-      return_url: "http://localhost:8080/app/" + bundleID + "/complete",
+      return_url: "http://localhost:8080/app/" + appBundleID + "/complete",
     },
   });
 
@@ -97,8 +101,14 @@ async function getPaymentIntent() {
 
   console.log("Creating new payment intent");
 
+  const formData = {
+    name: document.getElementById("name").value,
+    email: document.getElementById("email").value,
+    subscribe: document.getElementById("subscribe-check").checked,
+  };
+
   // Create the PaymentIntent and obtain clientSecret
-  const res = await fetch("/app/" + bundleID + "/create-intent", {
+  const res = await fetch("/app/" + appBundleID + "/create-intent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(formData),
@@ -109,30 +119,15 @@ async function getPaymentIntent() {
 
 // Fetches the payment intent status after payment submission
 async function checkStatus() {
-  const clientSecret = new URLSearchParams(window.location.search).get(
-    "payment_intent_client_secret"
+  const statusMessage = new URLSearchParams(window.location.search).get(
+    "status_message"
   );
 
-  if (!clientSecret) {
+  if (!statusMessage) {
     return;
   }
 
-  const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
-
-  switch (paymentIntent.status) {
-    case "succeeded":
-      showMessage("Payment succeeded!");
-      break;
-    case "processing":
-      showMessage("Your payment is processing.");
-      break;
-    case "requires_payment_method":
-      showMessage("Your payment was not successful, please try again.");
-      break;
-    default:
-      showMessage("Something went wrong.");
-      break;
-  }
+  showMessage(statusMessage);
 }
 
 // ------- UI helpers -------
