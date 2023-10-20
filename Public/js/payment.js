@@ -22,13 +22,10 @@ async function initialize() {
   console.log("initialize payment elements");
 
   const checkoutIntentResponse = await fetch(window.location, {
-    method: "OPTIONS",
+    method: "CHECKOUT",
     headers: { "Content-Type": "application/json" },
   });
   const { bundleID, paymentOptions } = await checkoutIntentResponse.json();
-
-  console.log(bundleID);
-  console.log(paymentOptions);
 
   appBundleID = bundleID;
   elements = stripe.elements(paymentOptions);
