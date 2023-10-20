@@ -75,8 +75,10 @@ struct CheckoutReceipt: Content {
 }
 
 struct FullReceipt: Content {
+	let date: Date
 	let totalAmount: String
 	let showProcessingMessage: Bool
+	let payment: Payment?
 	let receiptURL: String?
 
 	let items: [Item]
@@ -85,5 +87,27 @@ struct FullReceipt: Content {
 		let name: String
 		let price: String
 		let includesUpdates: Bool
+		let updateStartDate: Date?
+	}
+
+	struct Payment: Content {
+		let brand: String
+		let lastFour: String
+
+		init(brand: String, lastFour: String) {
+			self.brand = brand
+			self.lastFour = lastFour
+		}
+
+		init?(_ method: PaymentMethod?) {
+			guard
+				let brand = method?.card?.brand,
+				let lastFour = method?.card?.last4 else {
+				return nil
+			}
+
+			self.brand = brand.rawValue
+			self.lastFour = lastFour
+		}
 	}
 }

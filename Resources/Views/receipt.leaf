@@ -1,36 +1,91 @@
 <html>
   <head>
-    <link rel="stylesheet" href="/css/bulma.min.css" />
+    <link rel="stylesheet" href="http://localhost:8080/css/bulma.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://storage.emory.coffee/updates/resources/MaterialDesign/css/materialdesignicons.min.css"
+      type="text/css"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Thank you for your purchase</title>
   </head>
 
   <body>
-    <p>Receipt from Lost Cause Photographic, LLC</p>
+    <section>
+      <div class="container">
+        <div class="modal is-active">
+          <div class="modal-background"></div>
+          <div class="modal-card">
+            <header class="modal-card-head">
+              <p class="modal-card-title">
+                Receipt from Lost Cause Photographic
+              </p>
+            </header>
 
-    <p>Order Summary</p>
-    <table>
-      #for(item in items):
-      <tr>
-        <td>
-          #(item.name)
-          <br />
-          #if(item.includesUpdates):
-          <p>Includes updates</p>
-          #endif
-        </td>
-        <td>#(item.price)</td>
-      </tr>
-      #endfor
-    </table>
+            <section class="modal-card-body">
+              <div class="level">
+                <div class="level-item">
+                  <div>
+                    <p class="heading">Amount Paid</p>
+                    <p class="subtitle">#(totalAmount)</p>
+                  </div>
+                </div>
 
-    #if(showProcessingMessage):
-    <p>
-      Your order is still processing, you'll receive an email when it's
-      complete.
-    </p>
-    #endif #if(receiptUrl):
-    <p>View your <a href="#(receiptUrl)">full receipt</a>.</p>
-    #endif
+                <div class="level-item">
+                  <div>
+                    <p class="heading">Date</p>
+                    <p class="subtitle">#date(date, "dd MMM, yyyy, HH:mm")</p>
+                  </div>
+                </div>
+
+                <div class="level-item">
+                  <div>
+                    <p class="heading">Payment Method</p>
+                    <p class="subtitle">
+                      #if(payment): #uppercased(payment.brand) -
+                      #(payment.lastFour) #else: Unknown #endif
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p class="block heading">Order Summary</p>
+
+              <div class="block">
+                #for(item in items):
+                <div class="media">
+                  <figure class="media-left">
+                    <p class="image is-48x48">
+                      <img
+                        src="http://localhost:8080/images/MonitorControl.png"
+                      />
+                    </p>
+                  </figure>
+                  <div class="media-content">
+                    <p class="has-text-weight-semibold">#(item.name)</p>
+                    #if(item.includesUpdates):
+                    <p class="is-size-7 is-italic">
+                      Updates start October 2024
+                    </p>
+                    #endif
+                  </div>
+                  <div class="media-right">#(item.price)</div>
+                </div>
+                #endfor
+              </div>
+            </section>
+            <footer class="modal-card-foot">
+              <p>
+                If you have any questions, visit the
+                <a href="https://kb.lostcause.photo/">knowledge base</a> or
+                <a href="mailto:support@lostcause.photo?subject=Order Help"
+                  >contact us</a
+                >.
+              </p>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </section>
   </body>
 </html>

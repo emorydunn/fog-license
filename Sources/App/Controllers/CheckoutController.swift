@@ -70,6 +70,7 @@ struct CheckoutController: RouteCollection {
 			throw Abort(.badRequest, reason: "Request is missing a payment intent")
 		}
 
+
 		let paymentIntent = try await req.stripe.paymentIntents.retrieve(intent: intent, clientSecret: nil)
 		req.logger.log(level: .debug, "Decoded payment intent")
 
@@ -109,25 +110,24 @@ struct CheckoutController: RouteCollection {
 
 
 		let receipt = try await Receipt.findPayment(intent, on: req.db)
+		var paymentMethod: PaymentMethod?
+		if let id = paymentIntent.paymentMethod {
+			paymentMethod = try await req.stripe.paymentMethods.retrieve(paymentMethod: id, expand: ["card"])
+		}
 
 		let items = try await receipt.$items
 			.get(on: req.db)
 			.map { item in
 				FullReceipt.Item(name: item.description,
 								 price: item.amount.formatted(.currency(code: paymentIntent.currency?.rawValue ?? "usd")),
-								 includesUpdates: item.requestedUpdates)
+								 includesUpdates: item.requestedUpdates,
+								 updateStartDate: nil)
 		}
-		//		let app = receipt.$
-
-		let context = FullReceipt(totalAmount: paymentIntent.formattedAmount, 
-								  showProcessingMessage: showProcessingMessage,
+		let context = FullReceipt(date: receipt.date,
+								  totalAmount: paymentIntent.formattedAmount,
+								  showProcessingMessage: showProcessingMessage, 
+								  payment: FullReceipt.Payment(paymentMethod),
 								  receiptURL: charge.receiptUrl, items: items)
-
-//		let context = CheckoutReceipt(name: app.name,
-//									  amount: paymentIntent.formattedAmount,
-//									  sub: paymentIntent.createSubscription,
-//									  showProcessingMessage: showProcessingMessage,
-//									  receiptURL: charge.receiptUrl)
 
 		return try await req.view.render("receipt", context).encodeResponse(for: req)
 	}
