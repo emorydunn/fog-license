@@ -1,6 +1,6 @@
 //
 //  CheckoutController.swift
-//  
+//
 //
 //  Created by Emory Dunn on 10/15/23.
 //
@@ -16,11 +16,14 @@ struct CheckoutController: RouteCollection {
 
 		checkoutGroup.group(":appID") { app in
 			app.get(use: checkout)
-			app.on(.OPTIONS, "checkout", use: checkoutIntentInfo)
-			
+			app.post(use: checkoutIntentInfo)
+			app.on(.CHECKOUT, use: checkoutIntentInfo)
+
 			app.post("create-intent", use: createIntent)
-			app.get("complete", use: success)
+
 		}
+
+		checkoutGroup.get("complete", use: success)
 
 	}
 
@@ -52,7 +55,13 @@ struct CheckoutController: RouteCollection {
 		return try await req.view.render("checkout", context)
 
 	}
-
+	
+	/// The return page after checkout.
+	///
+	/// This method verifies the Payment Intent succeeded and shows a receipt page. 
+	///
+	/// If the intent didn't succeed the request is redirected to the checkout page with the
+	/// client secret and an error message so the user can attempt payment again.
 	func success(req: Request) async throws -> Response {
 
 		guard
@@ -86,11 +95,9 @@ struct CheckoutController: RouteCollection {
 					.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
 			}
 
-			redirectURL.path = redirectURL.path.replacingOccurrences(of: "/complete", with: "/checkout")
+			redirectURL.path = redirectURL.path.replacingOccurrences(of: "/complete", with: "")
 			return req.redirect(to: redirectURL.string)
 		}
-
-		let app: App = try await App.find(req.parameters.get("appID"), on: req.db)
 
 		guard
 			let chargeID = paymentIntent.latestCharge,
@@ -100,11 +107,27 @@ struct CheckoutController: RouteCollection {
 			throw Abort(.notFound, reason: "Payment intent has not been charged")
 		}
 
-		let context = CheckoutReceipt(name: app.name,
-									  amount: paymentIntent.formattedAmount,
-									  sub: paymentIntent.createSubscription,
-									  showProcessingMessage: showProcessingMessage,
-									  receiptUrl: charge.receiptUrl)
+
+		let receipt = try await Receipt.findPayment(intent, on: req.db)
+
+		let items = try await receipt.$items
+			.get(on: req.db)
+			.map { item in
+				FullReceipt.Item(name: item.description,
+								 price: item.amount.formatted(.currency(code: paymentIntent.currency?.rawValue ?? "usd")),
+								 includesUpdates: item.requestedUpdates)
+		}
+		//		let app = receipt.$
+
+		let context = FullReceipt(totalAmount: paymentIntent.formattedAmount, 
+								  showProcessingMessage: showProcessingMessage,
+								  receiptURL: charge.receiptUrl, items: items)
+
+//		let context = CheckoutReceipt(name: app.name,
+//									  amount: paymentIntent.formattedAmount,
+//									  sub: paymentIntent.createSubscription,
+//									  showProcessingMessage: showProcessingMessage,
+//									  receiptURL: charge.receiptUrl)
 
 		return try await req.view.render("receipt", context).encodeResponse(for: req)
 	}
@@ -138,50 +161,44 @@ struct CheckoutController: RouteCollection {
 		// Decode the info sent from the client
 		let checkoutCustomer = try request.content.decode(CheckoutCustomer.self)
 
-		let stripeCustomerID = try await request.returnUser(with: checkoutCustomer.email, name: checkoutCustomer.name)
+		let user = try await request.getOrCreateUser(with: checkoutCustomer.email, name: checkoutCustomer.name)
 
 		request.logger.log(level: .info, "Creating payment intent")
 
 		// Store app metadata for future use
-		let metadata = [
-			"bundle_id": app.bundleID,
-			"create_subscription": checkoutCustomer.subscribe.description
-		]
+//		let metadata = [
+//			"bundle_id": app.bundleID,
+//			"create_subscription": checkoutCustomer.subscribe.description
+//		]
 
+		
 		let purchasePrice = try await request.stripe.prices.retrieve(price: app.purchaseID, expand: nil)
-		let intent = try await request.stripe.paymentIntents.create(amount: purchasePrice.unitAmount!,
-																	currency: .usd,
-																	automaticPaymentMethods: ["enabled": true],
-																	confirm: nil,
-																	customer: stripeCustomerID,
-																	description: purchasePrice.nickname,
-																	metadata: metadata,
-																	offSession: nil,
-																	paymentMethod: nil,
-																	receiptEmail: nil,
-																	setupFutureUsage: .offSession,
-																	shipping: nil,
-																	statementDescriptor: nil,
-																	statementDescriptorSuffix: nil,
-																	applicationFeeAmount: nil,
-																	captureMethod: nil,
-																	confirmationMethod: nil,
-																	errorOnRequiresAction: nil,
-																	mandate: nil,
-																	mandateData: nil,
-																	onBehalfOf: nil,
-																	paymentMethodData: nil,
-																	paymentMethodOptions: nil,
-																	paymentMethodTypes: nil,
-																	radarOptions: nil,
-																	returnUrl: nil,
-																	transferData: nil,
-																	transferGroup: nil,
-																	useStripeSDK: nil,
-																	expand: nil)
+		let intent = try await request.stripe.createPaymentIntent(by: user, for: purchasePrice)
 
 		guard let secret = intent.clientSecret else {
 			throw Abort(.badRequest)
+		}
+
+		let receipt = Receipt(paymentID: intent.id)
+
+		let newLicense = try LicenseModel(app: app, 
+										  user: user,
+										  isActive: false,
+										  expiryDate: app.expirationDate())
+
+		try await request.db.transaction { db in
+			try await receipt.save(on: db)
+			try await receipt.addLicense(newLicense, on: db) { pivot in
+				pivot.amount = purchasePrice.unitAmount!
+				pivot.description = purchasePrice.nickname ?? app.name
+				pivot.requestedUpdates = checkoutCustomer.subscribe
+			}
+
+			if checkoutCustomer.subscribe {
+				let newSub = try UpdateSubscription(newLicense)
+				try await newLicense.$subscription.create(newSub, on: db)
+
+			}
 		}
 
 		request.logger.log(level: .info, "Returning intent \(intent.id) \(secret)")

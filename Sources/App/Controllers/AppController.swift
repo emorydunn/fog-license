@@ -12,19 +12,13 @@ import StripeKit
 
 struct AppController: RouteCollection {
 	func boot(routes: RoutesBuilder) throws {
-		let apps = routes.grouped("app")
+		let apps = routes.grouped("apps")
 
 		apps.get(use: index)
 		apps.post(use: create)
 		apps.group(":appID") { app in
 			app.get(use: fetch)
 			app.delete(use: delete)
-			app.get("checkout", use: checkout)
-			app.get(use: checkout)
-//			app.on(.OPTIONS, "checkout", use: checkoutIntentInfo)
-//			app.post("create-intent", use: createIntent)
-////			app.get("create-intent", use: checkoutIntentInfo)
-//			app.get("complete", use: success)
 		}
 
 	}
@@ -38,7 +32,8 @@ struct AppController: RouteCollection {
 	}
 
 	func create(req: Request) async throws -> App {
-		let app = try req.content.decode(App.self)
+		let stub = try req.content.decode(App.Stub.self)
+		let app = try await App(stub, on: req.db)
 		try await app.save(on: req.db)
 		return app
 	}
@@ -48,10 +43,5 @@ struct AppController: RouteCollection {
 		try await app.delete(on: req.db)
 		return .noContent
 	}
-
-	func checkout(req: Request) async throws -> HTTPStatus {
-		return .ok
-	}
-
 
 }

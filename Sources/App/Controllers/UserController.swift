@@ -58,4 +58,5 @@ struct UserController: RouteCollection {
 		req.logger.log(level: .info, "Found user using external ID")
 		return user
 	}
+
 }

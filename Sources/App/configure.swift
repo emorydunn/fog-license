@@ -10,8 +10,15 @@ public func configure(_ app: Application) async throws {
     // uncomment to serve files from /Public folder
      app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
+	switch app.environment {
+	case .testing:
+		app.logger.log(level: .notice, "App is running in a testing environment, using an in-memory DB")
+		app.databases.use(DatabaseConfigurationFactory.sqlite(.memory), as: .sqlite)
+	default:
+		app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
+	}
 //    app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
-	app.databases.use(DatabaseConfigurationFactory.sqlite(.memory), as: .sqlite)
+//	app.databases.use(DatabaseConfigurationFactory.sqlite(.memory), as: .sqlite)
 
     app.migrations.add(DatabaseV1Migration())
 
@@ -20,7 +27,7 @@ public func configure(_ app: Application) async throws {
     // register routes
     try routes(app)
 
-	try await app.autoRevert() // Wipe the DB
+//	try await app.autoRevert() // Wipe the DB
 	try await app.autoMigrate() // Set up a new DB
 }
 
