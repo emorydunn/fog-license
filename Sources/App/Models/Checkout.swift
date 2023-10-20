@@ -71,5 +71,19 @@ struct CheckoutReceipt: Content {
 	let amount: String
 	let sub: Bool
 	let showProcessingMessage: Bool
-	let receiptUrl: String?
+	let receiptURL: String?
+}
+
+struct FullReceipt: Content {
+	let totalAmount: String
+	let showProcessingMessage: Bool
+	let receiptURL: String?
+
+	let items: [Item]
+
+	struct Item: Content {
+		let name: String
+		let price: String
+		let includesUpdates: Bool
+	}
 }

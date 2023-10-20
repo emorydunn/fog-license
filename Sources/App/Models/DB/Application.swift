@@ -30,8 +30,11 @@ final class App: Model, Content {
 	@Field(key: "purchase_id")
 	var purchaseID: String
 
-	@Field(key: "subscription_id")
+	@OptionalField(key: "subscription_id")
 	var subscriptionID: String?
+
+	@Children(for: \.$application)
+	var licenses: [LicenseModel]
 
 	init() {}
 
@@ -51,6 +54,28 @@ final class App: Model, Content {
 		self.activationCount = activationCount
 		self.purchaseID = purchaseID
 		self.subscriptionID = subscriptionID
+	}
+
+	init(_ stub: Stub, on database: Database) async throws {
+		self.name = stub.name
+		self.number = UInt8(try await App.query(on: database).count() + 1)
+		self.bundleID = stub.bundleID
+		self.activationCount = stub.activationCount
+		self.purchaseID = stub.purchaseID
+		self.subscriptionID = stub.subscriptionID
+	}
+
+	struct Stub: Content {
+		let name: String
+		let bundleID: String
+		let activationCount: Int
+		let purchaseID: String
+		let subscriptionID: String?
+	}
+
+	func expirationDate(anchorDate: Date = .now) -> Date? {
+		guard subscriptionID != nil else { return nil }
+		return Calendar.current.date(byAdding: .year, value: 1, to: anchorDate)
 	}
 
 }

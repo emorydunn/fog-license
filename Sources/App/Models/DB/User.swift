@@ -13,8 +13,11 @@ final class User: Model, Content {
 	@Field(key: "email")
 	var email: String
 
-	@Field(key: "external_id")
+	@OptionalField(key: "external_id")
 	var externalID: String?
+
+	@Children(for: \.$user)
+	var licenses: [LicenseModel]
 
 	init() { }
 
@@ -25,5 +28,18 @@ final class User: Model, Content {
 		self.externalID = externalID
 	}
 
+}
 
+extension User {
+	static func findCustomer(_ id: String?, on db: Database) async throws -> User {
+		guard let user = try await User
+			.query(on: db)
+			.filter(\.$externalID == id)
+			.first()
+		else {
+			throw Abort(.notFound)
+		}
+
+		return user
+	}
 }
