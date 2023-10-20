@@ -7,6 +7,7 @@
 
 import Foundation
 import StripeKit
+import Vapor
 
 extension Price {
 	var formattedAmount: String {
@@ -69,4 +70,89 @@ extension PaymentIntent {
 			return "Something went wrong."
 		}
 	}
+}
+
+extension StripeClient {
+	func createPaymentIntent(by user: User, for app: App) async throws -> PaymentIntent {
+		let purchasePrice = try await prices.retrieve(price: app.purchaseID, expand: nil)
+
+			return try await paymentIntents.create(amount: purchasePrice.unitAmount!,
+														 currency: .usd,
+														 automaticPaymentMethods: ["enabled": true],
+														 confirm: nil,
+														 customer: user.externalID,
+														 description: purchasePrice.nickname,
+														 metadata: nil,
+														 offSession: nil,
+														 paymentMethod: nil,
+														 receiptEmail: nil,
+														 setupFutureUsage: .offSession,
+														 shipping: nil,
+														 statementDescriptor: nil,
+														 statementDescriptorSuffix: nil,
+														 applicationFeeAmount: nil,
+														 captureMethod: nil,
+														 confirmationMethod: nil,
+														 errorOnRequiresAction: nil,
+														 mandate: nil,
+														 mandateData: nil,
+														 onBehalfOf: nil,
+														 paymentMethodData: nil,
+														 paymentMethodOptions: nil,
+														 paymentMethodTypes: nil,
+														 radarOptions: nil,
+														 returnUrl: nil,
+														 transferData: nil,
+														 transferGroup: nil,
+														 useStripeSDK: nil,
+														 expand: nil)
+
+	}
+
+	func createPaymentIntent(by user: User, for purchasePrice: Price) async throws -> PaymentIntent {
+		return try await paymentIntents.create(amount: purchasePrice.unitAmount!,
+											   currency: .usd,
+											   automaticPaymentMethods: ["enabled": true],
+											   confirm: nil,
+											   customer: user.externalID,
+											   description: purchasePrice.nickname,
+											   metadata: nil,
+											   offSession: nil,
+											   paymentMethod: nil,
+											   receiptEmail: nil,
+											   setupFutureUsage: .offSession,
+											   shipping: nil,
+											   statementDescriptor: nil,
+											   statementDescriptorSuffix: nil,
+											   applicationFeeAmount: nil,
+											   captureMethod: nil,
+											   confirmationMethod: nil,
+											   errorOnRequiresAction: nil,
+											   mandate: nil,
+											   mandateData: nil,
+											   onBehalfOf: nil,
+											   paymentMethodData: nil,
+											   paymentMethodOptions: nil,
+											   paymentMethodTypes: nil,
+											   radarOptions: nil,
+											   returnUrl: nil,
+											   transferData: nil,
+											   transferGroup: nil,
+											   useStripeSDK: nil,
+											   expand: nil)
+
+	}
+
+
+}
+
+extension StripeError: DebuggableError {
+	public var identifier: String {
+		return error?.type?.rawValue ?? "Unknown Error"
+	}
+	
+	public var reason: String {
+		return error?.message ?? "Unknown Error"
+	}
+	
 }
