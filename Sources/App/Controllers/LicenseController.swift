@@ -11,6 +11,17 @@ import SharedModels
 import Fluent
 import JWT
 
+struct LicenseQuery: Codable {
+
+	enum CodingKeys: String, CodingKey {
+		case bundleIdentifier = "bundle_identifier"
+		case emailAddress = "email_address"
+	}
+
+	let bundleIdentifier: String?
+	let emailAddress: String
+}
+
 struct LicenseController: RouteCollection {
 	func boot(routes: RoutesBuilder) throws {
 		let routeGroup = routes.grouped("licenses")
@@ -18,26 +29,25 @@ struct LicenseController: RouteCollection {
 		routeGroup.get(use: index)
 		routeGroup.post(use: create)
 		routeGroup.group(":licenseID") { group in
-//			todo.get(use: getUser)
-//			todo.delete(use: delete)
-			group.post("activate", use: activate)
-			group.delete("activate", use: activate)
+			group.delete(use: deactivateLicense)
+			group.get(use: fetch)
+			group.post("activation", use: activate)
+			group.delete("activation", use: deactivateMachine)
 		}
 
 	}
 
 	func index(req: Request) async throws -> [SoftwareLicense] {
 
-		let bundleIdentifier = try? req.query.get(String.self, at: "bundle_identifier")
-		let emailAddress = try req.query.get(String.self, at: "email_address")
+		let query = try req.query.decode(LicenseQuery.self)
 
 		let licenses = try await LicenseModel.query(on: req.db)
 			.join(User.self, on: \LicenseModel.$user.$id == \User.$id)
 			.join(App.self, on: \LicenseModel.$application.$id == \App.$id)
 			.group(.and) { group in
-				group.filter(User.self, \.$email == emailAddress)
+				group.filter(User.self, \.$email == query.emailAddress)
 
-				if let bundleIdentifier {
+				if let bundleIdentifier = query.bundleIdentifier {
 					group.filter(App.self, \.$bundleIdentifier == bundleIdentifier)
 				}
 			}
@@ -59,6 +69,12 @@ struct LicenseController: RouteCollection {
 		}
 	}
 
+	func fetch(req: Request) async throws -> SoftwareLicense {
+		let license = try await LicenseModel.find(req: req)
+
+		return try await SoftwareLicense(license, on: req.db)
+	}
+
 	func create(req: Request) async throws -> SoftwareLicense {
 		let generate = try req.content.decode(SoftwareLicense.Generate.self)
 
@@ -74,6 +90,19 @@ struct LicenseController: RouteCollection {
 		return try await SoftwareLicense(newModel, on: req.db)
 	}
 	
+
+	func deactivateLicense(req: Request) async throws -> SoftwareLicense {
+
+		let license = try await LicenseModel.find(req: req)
+
+		license.isActive = false
+
+		try await license.save(on: req.db)
+
+		return try await SoftwareLicense(license, on: req.db)
+	}
+
+	// MARK: - Machine Activations
 	/// Activate or validate a license.
 	///
 	/// Validation Steps:
@@ -87,14 +116,7 @@ struct LicenseController: RouteCollection {
 	/// - Returns: A `SoftwareLicense` and a JWT token as the auth header.
 	func activate(req: Request) async throws -> Response {
 
-		guard 
-			let number = req.parameters.get("licenseID", as: UInt32.self),
-			let license = try await LicenseModel.query(on: req.db)
-				.filter(\.$code == LicenseCode(number))
-				.first()
-		else {
-			throw Abort(.notFound, reason: "Could not find license to activate")
-		}
+		let license = try await LicenseModel.find(req: req)
 
 		// Ensure the license is active
 		guard license.isActive else {
@@ -109,10 +131,9 @@ struct LicenseController: RouteCollection {
 			throw Abort(.forbidden, reason: "Activation limit \(license.activationLimit) reached for license \(license.code.formatted(.hexBytes))")
 		}
 
-		// Load the app for additional verification
+		// Load the relationships for additional verification
 		try await license.$application.load(on: req.db)
-
-		print(req.body.string ?? "")
+		try await license.$user.load(on: req.db)
 
 		let bundleIdentifier: String = try req.content.get(at: "bundleIdentifier")
 
@@ -120,10 +141,12 @@ struct LicenseController: RouteCollection {
 		guard
 			license.application.bundleIdentifier == bundleIdentifier
 		else {
-			throw Abort(.badRequest, reason: "Provided bundle identifier does not match the application's bundle identifier")
+			throw Abort(.forbidden, reason: "Provided bundle identifier does not match the application's bundle identifier")
 		}
 
 		// Ensure the license code is valid (should also be done client side)
+		// This should only ever fail if the app's magic number is changed
+		// _after_ license creation, which would invalidate _every_ code. Don't do that.
 		guard
 			license.code.isValid(for: license.application.number)
 		else {
@@ -139,11 +162,19 @@ struct LicenseController: RouteCollection {
 			let hardwareInfoID = try hardwareInfo.requireID()
 			let licenseID = try license.requireID()
 
-			let activation = try await Activation.find(license: licenseID, computer: hardwareInfoID, on: db)
+			let activation: Activation = try await Activation.find(license: licenseID, computer: hardwareInfoID, on: db)
 
+			// Clear any deactivation date and increment the counter
 			activation.verificationCount += 1
 
-			try await activation.save(on: db)
+			if activation.deactivatedDate == nil {
+				req.logger.debug("Saving activation")
+				try await activation.save(on: db)
+			} else {
+				req.logger.debug("Restoring activation")
+				try await activation.restore(on: db)
+			}
+
 			req.logger.notice("Activated license \(license.code.formatted(.hexBytes))")
 
 			// The when the app should verify the license again
@@ -155,7 +186,7 @@ struct LicenseController: RouteCollection {
 			let token = try req.jwt.sign(payload)
 
 			let softLicense = SoftwareLicense(license, activationCount: activationCount)
-			let response = Response(status: .ok)
+			let response = Response(status: .accepted)
 			try response.content.encode(softLicense)
 
 			response.headers.bearerAuthorization = .init(token: token)
@@ -163,6 +194,25 @@ struct LicenseController: RouteCollection {
 
 		}
 
+	}
+
+	func deactivateMachine(req: Request) async throws -> Response {
+
+		// Look up the license from the query
+		let license = try await LicenseModel.find(req: req)
+
+		// Decode the hardware from the body
+		let hardwareInfo = try await ComputerInfo.decode(request: req, updatingExisting: true, on: req.db)
+
+		// Find the activation, if it doesn't exist there's nothing to do
+		let activation: Activation? = try await Activation.find(license: try license.requireID(),
+						computer: try hardwareInfo.requireID(),
+						on: req.db)
+
+		// Soft-delete the activation
+		try await activation?.delete(on: req.db)
+
+		return Response(status: .accepted)
 	}
 
 }
