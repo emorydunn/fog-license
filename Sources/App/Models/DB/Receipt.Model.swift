@@ -101,7 +101,8 @@ final class Receipt: Model, Content {
 	}
 
 	func removeLicenses(on db: Database) async throws {
-		try await removeLicenses(licenses, on: db)
+		try await $licenses.load(on: db)
+		try await $licenses.detach(licenses, on: db)
 	}
 
 }

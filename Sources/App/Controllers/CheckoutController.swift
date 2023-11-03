@@ -164,13 +164,7 @@ struct CheckoutController: RouteCollection {
 
 		request.logger.log(level: .info, "Creating payment intent")
 
-		// Store app metadata for future use
-//		let metadata = [
-//			"bundle_id": app.bundleID,
-//			"create_subscription": checkoutCustomer.subscribe.description
-//		]
-
-		
+		// Fetch the price info and create a payment intent with Stripe
 		let purchasePrice = try await request.stripe.prices.retrieve(price: app.purchaseID, expand: nil)
 		let intent = try await request.stripe.createPaymentIntent(by: user, for: purchasePrice)
 
@@ -178,25 +172,33 @@ struct CheckoutController: RouteCollection {
 			throw Abort(.badRequest)
 		}
 
+		// Create a new receipt for the transaction
 		let receipt = Receipt(paymentID: intent.id)
 
-		let newLicense = try LicenseModel(app: app, 
+		// Generate the license code
+		// The new license will be activated once the payment succeeds
+		let newLicense = try LicenseModel(app: app,
 										  user: user,
 										  isActive: false,
 										  expiryDate: app.expirationDate())
 
+		// Ensure the whole checkout succeeds
 		try await request.db.transaction { db in
+			// Save the receipt
 			try await receipt.save(on: db)
+
+			// Attach the license to the receipt, updating the line item info
 			try await receipt.addLicense(newLicense, on: db) { pivot in
 				pivot.amount = purchasePrice.unitAmount!
 				pivot.description = purchasePrice.nickname ?? app.name
 				pivot.requestedUpdates = checkoutCustomer.subscribe
 			}
 
+			// If the user requested a subscription, go ahead and set that up
+			// The Stripe subscription will be created once the payment succeeds
 			if checkoutCustomer.subscribe {
 				let newSub = try UpdateSubscription(newLicense)
 				try await newLicense.$subscription.create(newSub, on: db)
-
 			}
 		}
 

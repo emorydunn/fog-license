@@ -53,7 +53,18 @@ struct ReceiptController: RouteCollection {
 			try await receipt.save(on: db)
 
 			// Add the licenses to the receipt
-			try await receipt.addLicenses(body.licenses, on: db)
+//			try await receipt.addLicenses(body.licenses, on: db)
+			for license in body.licenses {
+				let app = try await license.$application.get(on: db)
+				let purchasePrice = try await req.stripe.prices.retrieve(price: app.purchaseID, expand: nil)
+
+				// Attach the license to the receipt, updating the line item info
+				try await receipt.addLicense(license, on: db) { pivot in
+					pivot.amount = purchasePrice.unitAmount!
+					pivot.description = purchasePrice.nickname ?? app.name
+					pivot.requestedUpdates = false
+				}
+			}
 			try await receipt.$licenses.load(on: db)
 		}
 

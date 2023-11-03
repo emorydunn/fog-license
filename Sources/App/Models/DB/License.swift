@@ -10,6 +10,7 @@ import ByteKit
 import Vapor
 import Fluent
 import StripeKit
+import SharedModels
 
 final class LicenseModel: Model, Content {
 	static let schema = "license"
@@ -21,22 +22,17 @@ final class LicenseModel: Model, Content {
 	var date: Date
 
 	@OptionalField(key: "expiry_date")
+//	@Timestamp(key: "expiry_date", on: .delete)
 	var expiryDate: Date?
 
 	@Field(key: "code")
 	var code: LicenseCode
 
 	@Field(key: "allowed_activation_count")
-	var activationCount: Int
+	var activationLimit: Int
 
 	@Field(key: "is_active")
 	var isActive: Bool
-
-//	@Field(key: "payment_id")
-//	var paymentID: String?
-//
-//	@Field(key: "subscription_id")
-//	var subscriptionID: String?
 
 	@Parent(key: "application_id")
 	var application: App
@@ -53,6 +49,9 @@ final class LicenseModel: Model, Content {
 //	@OptionalParent(key: "receipt_item_id")
 //	var receiptItem: ReceiptItem?
 
+	@Children(for: \.$license)
+	var activations: [Activation]
+
 	init() { }
 
 	init(app: App, user: User, date: Date = Date(), isActive: Bool = true, expiryDate: Date? = nil) throws {
@@ -61,7 +60,7 @@ final class LicenseModel: Model, Content {
 		self.isActive = isActive
 //		self.paymentID = payment.id
 		self.code = LicenseCode(appID: app.number)
-		self.activationCount = app.activationCount
+		self.activationLimit = app.activationCount
 
 		self.$application.id = try app.requireID()
 		self.$user.id = try user.requireID()
@@ -71,11 +70,21 @@ final class LicenseModel: Model, Content {
 		self.date = date
 		self.expiryDate = expiryDate
 		self.code = code
-		self.activationCount = activationCount
+		self.activationLimit = activationCount
 //		self.paymentID = payment
 
 		self.$application.id = application
 		self.$user.id = user
+	}
+
+
+	/// Query a database for the number of active activations for the license.
+	/// - Parameter db: The Database to query.
+	/// - Returns: The count of associated activations.
+	func activationCount(on db: Database) async throws -> Int {
+		try await self.$activations
+			.query(on: db)
+			.count()
 	}
 
 //	func generateSoftwareLicense(on db: Database) async throws -> SoftwareLicense {
@@ -95,10 +104,45 @@ extension LicenseModel: CustomStringConvertible {
 	}
 }
 
-//struct SoftwareLicense: Codable {
-//	let code: LicenseCode
-//	let application: String
-//	let name: String
-//	let email: String
-//	let date: Date
-//}
+extension SoftwareLicense.Generate: Content {
+//	struct Generate: Content {
+////		let bundleIdentifier: String
+////		let customerEmail: String
+////		var date: Date?
+////		var isActive: Bool?
+////		var expiryDate: Date? = nil
+//	}
+}
+
+extension SoftwareLicense: Content {
+	init(_ license: LicenseModel, on db: Database) async throws {
+		let activationCount = try await license.$activations.query(on: db).count()
+
+		let user = try await license.$user.get(on: db)
+		let app = try await license.$application.get(on: db)
+
+		self.init(code: license.code,
+				  name: app.name,
+				  bundleIdentifier: app.bundleIdentifier,
+				  customerName: user.name,
+				  customerEmail: user.email,
+				  date: license.date,
+				  expiryDate: license.expiryDate,
+				  isActive: license.isActive,
+				  activationLimit: license.activationLimit,
+				  activationCount: activationCount)
+	}
+
+	init(_ license: LicenseModel, activationCount: Int) {
+		self.init(code: license.code,
+				  name: license.application.name,
+				  bundleIdentifier: license.application.bundleIdentifier,
+				  customerName: license.user.name,
+				  customerEmail: license.user.email,
+				  date: license.date,
+				  expiryDate: license.expiryDate,
+				  isActive: license.isActive,
+				  activationLimit: license.activationLimit,
+				  activationCount: activationCount)
+	}
+}
