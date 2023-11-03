@@ -42,4 +42,16 @@ extension User {
 
 		return user
 	}
+
+	static func find(email: String, on db: Database) async throws -> User {
+		guard let user = try await User
+			.query(on: db)
+			.filter(\.$email == email)
+			.first()
+		else {
+			throw Abort(.notFound)
+		}
+
+		return user
+	}
 }
