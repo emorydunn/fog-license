@@ -84,6 +84,28 @@ final class AppTests: XCTestCase {
 		}
 	}
 
+	func testUpdateApp() async throws {
+		let server = Application(.testing)
+		defer { server.shutdown() }
+		try await configure(server)
+
+		let newApp = try await App(App.test, on: server.db)
+		try await newApp.save(on: server.db)
+
+		var info = AppInfo.test
+
+		info.bundleIdentifier = "com.test.OtherApp"
+
+		let path = "/api/v1/apps/\(newApp.bundleIdentifier)"
+		try server.test(.PUT, path) { req in
+			try req.content.encode(info, as: .json)
+		} afterResponse: { res in
+			XCTAssertEqual(res.status, .ok)
+			let newApp = try res.content.decode(AppInfo.self)
+			XCTAssertEqual(newApp.bundleIdentifier, "com.test.OtherApp")
+		}
+	}
+
 	func testDeleteApp() async throws {
 		let server = Application(.testing)
 		defer { server.shutdown() }

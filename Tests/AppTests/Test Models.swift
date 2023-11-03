@@ -56,3 +56,19 @@ extension AppInfo {
 extension User: TestModel {
 	static var test: User { User(name: "Test User", email: "test@test.com") }
 }
+
+extension ComputerInfo: TestModel {
+	static var test: ComputerInfo {
+		ComputerInfo(id: nil, //UUID(uuidString: "4AF8C1E3-CCB7-4B3D-9DAF-5FDD2BCFAF71"),
+					 hardwareIdentifier: "fakecomputer",
+					 friendlyName: "Fake Computer",
+					 model: "Test1,1",
+					 osVersion: "14.0.0")
+	}
+}
+
+extension App {
+	func bootstrapDatabase() async throws {
+		
+	}
+}
