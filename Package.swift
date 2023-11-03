@@ -21,9 +21,9 @@ let package = Package(
 		.package(url: "https://github.com/vapor/leaf.git", from: "4.2.4"),
 		// 💳 Stripe Payments
 		.package(url: "https://github.com/vapor-community/stripe-kit.git", from: "22.0.0"),
-//		.package(url: "https://github.com/vapor-community/stripe.git", from: "15.0.0"),
-
-			.package(path: "/Users/emorydunn/Repositories/personal-libs/ByteKit")
+		.package(path: "/Users/emorydunn/Repositories/personal-libs/ByteKit"),
+		.package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
+		.package(url: "https://github.com/vapor/jwt-kit.git", from: "4.0.0"),
 	],
 	targets: [
 		.target(name: "SharedModels",
@@ -42,8 +42,9 @@ let package = Package(
 				.product(name: "Leaf", package: "leaf"),
 				.product(name: "Vapor", package: "vapor"),
 				.product(name: "StripeKit", package: "stripe-kit"),
-//				.product(name: "Stripe", package: "stripe"),
-				"ByteKit"
+				.product(name: "JWT", package: "jwt"),
+				"ByteKit",
+				"SharedModels"
 			]
 		),
 		.testTarget(name: "AppTests", dependencies: [
