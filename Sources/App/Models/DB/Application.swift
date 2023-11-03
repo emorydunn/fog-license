@@ -126,3 +126,52 @@ extension App {
 		return app
 	}
 }
+
+extension AppInfo: Content {
+
+	init(_ app: App, db: Database, stripe: StripeClient) async throws {
+		let purchasePrice = try await stripe.prices.retrieve(price: app.purchaseID, expand: nil)
+		let purchase = PurchaseInfo(id: purchasePrice.id, amount: purchasePrice.unitAmount ?? 0)
+
+		var subscription: SubscriptionInfo?
+		if let subscriptionID = app.subscriptionID {
+			let subPrice = try await stripe.prices.retrieve(price: subscriptionID, expand: nil)
+
+			subscription = SubscriptionInfo(id: subPrice.id,
+												 amount: subPrice.unitAmount ?? 0,
+												 period: subPrice.recurring!.interval!)
+		}
+
+		let appID = try app.requireID()
+
+		let licenseCount = try await app.$licenses
+			.query(on: db)
+			.count()
+
+		let subscriberCount = try await LicenseModel.query(on: db)
+			.join(UpdateSubscription.self, on: \UpdateSubscription.$license.$id == \LicenseModel.$id)
+			.filter(LicenseModel.self, \.$application.$id == appID)
+			.count()
+
+		self.init(name: app.name,
+				  bundleIdentifier: app.bundleIdentifier,
+				  purchase: purchase,
+				  subscription: subscription,
+				  number: app.number,
+				  activationCount: app.activationCount,
+				  licenseCount: licenseCount,
+				  subscriberCount: subscriberCount)
+	}
+
+	init(_ bundleID: String?, db: Database, stripe: StripeClient) async throws {
+		let app: App = try await App.find(bundleID, on: db)
+		try await self.init(app, db: db, stripe: stripe)
+
+	}
+}
+
+extension SubscriptionInfo {
+	public init(id: String, amount: Int, period: PlanInterval) {
+		self.init(id: id, amount: amount, period: SubscriptionInterval(rawValue: period.rawValue)!)
+	}
+}
