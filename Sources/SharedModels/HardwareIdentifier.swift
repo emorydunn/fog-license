@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  HardwareIdentifier.swift
+//
 //
 //  Created by Emory Dunn on 10/12/23.
 //
@@ -9,15 +9,16 @@ import Foundation
 import SystemConfiguration
 import IOKit
 import CryptoKit
+import ByteKit
 
-struct HardwareIdentifier: Hashable, Encodable {
-	let serialNumber: String
-	let uuid: UUID
-	let computerName: String
-	let computerModel: String
-	let osVersion: String
+public struct HardwareIdentifier: Hashable, Encodable {
+	public let serialNumber: String
+	public let uuid: UUID
+	public let computerName: String
+	public let computerModel: String
+	public let osVersion: String
 
-	init?() {
+	public init?() {
 		guard
 			let serialNumber = HardwareIdentifier.serialNumber(),
 			let uuid = HardwareIdentifier.uniqueID(),
@@ -30,30 +31,28 @@ struct HardwareIdentifier: Hashable, Encodable {
 		self.computerName = computerName
 		self.computerModel = HardwareIdentifier.model()
 
-
 		let osVersion = ProcessInfo.processInfo.operatingSystemVersion
 		self.osVersion = "\(osVersion.majorVersion).\(osVersion.minorVersion).\(osVersion.patchVersion)"
-
 	}
 
-	enum CodingKeys: CodingKey {
+	public enum CodingKeys: CodingKey {
 		case computerName
 		case computerModel
 		case osVersion
-		case digest
+		case hardwareIdentifier
 	}
 
-	func encode(to encoder: Encoder) throws {
+	public func encode(to encoder: Encoder) throws {
 		var container = encoder.container(keyedBy: CodingKeys.self)
 		try container.encode(self.computerName, forKey: .computerName)
 		try container.encode(self.computerModel, forKey: .computerModel)
 		try container.encode(self.osVersion, forKey: .osVersion)
 
 		let digest = Data(secureHash())
-		try container.encode(digest, forKey: .digest)
+		try container.encode(digest, forKey: .hardwareIdentifier)
 	}
 
-	func secureHash() -> SHA256.Digest {
+	public func secureHash() -> SHA256.Digest {
 		let serialData = Data(serialNumber.utf8)
 		let idData = Data(uuid.data)
 
@@ -63,6 +62,17 @@ struct HardwareIdentifier: Hashable, Encodable {
 		hardwareData.append(contentsOf: idData)
 
 		return SHA256.hash(data: hardwareData)
+	}
+
+	public func hashDescription() -> String {
+		let hash = secureHash()
+
+		return hash
+			.bytes()
+			.map {
+				$0.formatted(.hex(uppercase: true, includePrefix: false))
+			}
+			.joined(separator: "")
 	}
 
 	static func property(for key: String) -> Any? {
@@ -89,7 +99,7 @@ struct HardwareIdentifier: Hashable, Encodable {
 		return UUID(uuidString: uuidString)
 	}
 
-	static func model() -> String {
+	public static func model() -> String {
 		var length = 0
 		sysctlbyname("hw.model", nil, &length, nil, 0)
 		var cpuModel = [CChar](repeating: 0, count: length)

@@ -6,6 +6,10 @@ let package = Package(
 	platforms: [
 		.macOS(.v13)
 	],
+	products: [
+		.library(name: "License", targets: ["SharedModels"]),
+		.executable(name: "App", targets: ["App"])
+	],
 	dependencies: [
 		// 💧 A server-side Swift web framework.
 		.package(url: "https://github.com/vapor/vapor.git", from: "4.83.1"),
@@ -22,6 +26,14 @@ let package = Package(
 			.package(path: "/Users/emorydunn/Repositories/personal-libs/ByteKit")
 	],
 	targets: [
+		.target(name: "SharedModels",
+				dependencies: [
+					"ByteKit",
+					.product(name: "JWTKit", package: "jwt-kit"),
+				]),
+
+		.testTarget(name: "ModelTests", dependencies: ["SharedModels"]),
+
 		.executableTarget(
 			name: "App",
 			dependencies: [
