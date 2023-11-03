@@ -18,11 +18,19 @@ final class LicenseModel: Model, Content {
 	@ID(key: .id)
 	var id: UUID?
 
+	@Timestamp(key: "creation_date", on: .create)
+	var creationDate: Date?
+
+	@Timestamp(key: "update_date", on: .update)
+	var updateDate: Date?
+
+//	@Timestamp(key: "deactivated_date", on: .delete)
+//	var deactivatedDate: Date?
+
 	@Field(key: "date")
-	var date: Date
+	var activationDate: Date
 
 	@OptionalField(key: "expiry_date")
-//	@Timestamp(key: "expiry_date", on: .delete)
 	var expiryDate: Date?
 
 	@Field(key: "code")
@@ -55,7 +63,7 @@ final class LicenseModel: Model, Content {
 	init() { }
 
 	init(app: App, user: User, date: Date = Date(), isActive: Bool = true, expiryDate: Date? = nil) throws {
-		self.date = date
+		self.activationDate = date
 		self.expiryDate = expiryDate
 		self.isActive = isActive
 //		self.paymentID = payment.id
@@ -67,7 +75,7 @@ final class LicenseModel: Model, Content {
 	}
 
 	init(code: LicenseCode, activationCount: Int, application: App.IDValue, user: User.IDValue, date: Date = Date(), expiryDate: Date? = nil) {
-		self.date = date
+		self.activationDate = date
 		self.expiryDate = expiryDate
 		self.code = code
 		self.activationLimit = activationCount
@@ -98,6 +106,33 @@ final class LicenseModel: Model, Content {
 //	func activateLicense
 }
 
+extension LicenseModel {
+
+	@inlinable
+	static func find(code: UInt32, on db: Database) async throws -> LicenseModel {
+		guard
+			let license = try await LicenseModel.query(on: db)
+				.filter(\.$code == LicenseCode(code))
+				.first()
+		else {
+			throw Abort(.notFound, reason: "No license with code '\(code)'")
+		}
+
+		return license
+	}
+
+	@inlinable
+	static func find(req: Request, parameter: String = "licenseID") async throws -> LicenseModel {
+		guard
+			let number = req.parameters.get(parameter, as: UInt32.self)
+		else {
+			throw Abort(.badRequest, reason: "Missing query parameter '\(parameter) '")
+		}
+
+		return try await find(code: number, on: req.db)
+	}
+}
+
 extension LicenseModel: CustomStringConvertible {
 	var description: String {
 		return "License \(code) \(application)"
@@ -126,7 +161,7 @@ extension SoftwareLicense: Content {
 				  bundleIdentifier: app.bundleIdentifier,
 				  customerName: user.name,
 				  customerEmail: user.email,
-				  date: license.date,
+				  date: license.activationDate,
 				  expiryDate: license.expiryDate,
 				  isActive: license.isActive,
 				  activationLimit: license.activationLimit,
@@ -139,7 +174,7 @@ extension SoftwareLicense: Content {
 				  bundleIdentifier: license.application.bundleIdentifier,
 				  customerName: license.user.name,
 				  customerEmail: license.user.email,
-				  date: license.date,
+				  date: license.activationDate,
 				  expiryDate: license.expiryDate,
 				  isActive: license.isActive,
 				  activationLimit: license.activationLimit,

@@ -34,7 +34,7 @@ final class UpdateSubscription: Model, Content {
 	}
 
 	init(_ license: LicenseModel, subscriptionID: String? = nil) throws {
-		self.date = license.date
+		self.date = license.activationDate
 		self.$license.id = try license.requireID()
 		self.subscriptionID = subscriptionID
 	}

@@ -23,6 +23,7 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(DatabaseV1Migration())
 	app.migrations.add(DatabaseV2Migration())
 	app.migrations.add(DatabaseV3Migration())
+	app.migrations.add(DatabaseV4Migration())
 
     app.views.use(.leaf)
 

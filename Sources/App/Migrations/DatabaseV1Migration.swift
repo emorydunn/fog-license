@@ -123,3 +123,21 @@ struct DatabaseV3Migration: AsyncMigration {
 
 	}
 }
+
+struct DatabaseV4Migration: AsyncMigration {
+	func prepare(on database: Database) async throws {
+
+		try await database.schema(LicenseModel.schema)
+			.field("update_date", .date)
+			.update()
+
+		try await database.schema(LicenseModel.schema)
+			.field("creation_date", .date)
+			.update()
+
+	}
+
+	func revert(on database: Database) async throws {
+
+	}
+}
