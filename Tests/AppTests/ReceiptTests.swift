@@ -53,7 +53,11 @@ final class ReceiptTests: XCTestCase {
 		let newModel = Receipt(paymentID: "pi_12345")
 		try await newModel.save(on: server.db)
 
-		try await newModel.addLicense(newLicense, on: server.db)
+		try await newModel.addLicense(newLicense, on: server.db) { pivot in
+			pivot.amount = 100
+			pivot.description = "Test"
+			pivot.requestedUpdates = false
+		}
 
 		let path = "/api/v1/receipts/\(try newModel.requireID())"
 		try server.test(.GET, path) { res in
@@ -76,7 +80,11 @@ final class ReceiptTests: XCTestCase {
 		let newModel = Receipt(paymentID: "pi_12345")
 		try await newModel.save(on: server.db)
 
-		try await newModel.addLicense(newLicense, on: server.db)
+		try await newModel.addLicense(newLicense, on: server.db) { pivot in
+			pivot.amount = 100
+			pivot.description = "Test"
+			pivot.requestedUpdates = false
+		}
 
 		let path = "/api/v1/receipts/\(try newModel.requireID())"
 		try server.test(.DELETE, path) { res in
