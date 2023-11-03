@@ -30,13 +30,7 @@ struct DatabaseV1Migration: AsyncMigration {
 			.field("is_active", .bool, .required)
 			.field("application_id", .uuid, .required, .references(App.schema, "id"))
 			.field("user_id", .uuid, .required, .references(User.schema, "id"))
-//			.field("receipt_item_id", .uuid, .references(ReceiptItem.schema, "id"))
-//			.field("payment_id", .int)
-//			.field("subscription_id", .int)
 			.unique(on: "code")
-//					"payment_id",
-//					"subscription_id"
-//			)
 			.create()
 
 		try await database.schema(Receipt.schema)
@@ -63,23 +57,24 @@ struct DatabaseV1Migration: AsyncMigration {
 			.field("license_id", .uuid, .required, .references(LicenseModel.schema, "id"))
 			.create()
 
-
-
-//		print("Adding test data")
-//		// Create some default data
-//		try await App(name: "ScreeningRoom",
-//					  bundleID: "photo.lostcause.ScreeningRoom",
-//					  purchaseID: "price_1O0CEp2dG3awZnDi2Tn0k345",
-//					  subscriptionID: "price_1O0BP62dG3awZnDiuDKZXi4J",
-//					  on: database).save(on: database)
+//		try await database.schema(ComputerInfo.schema)
+//			.id()
+//			.field("hardware_id", .string, .required)
+//			.field("friendly_name", .string)
+//			.field("model", .string, .required)
+//			.field("os_version", .string, .required)
+//			.unique(on: "hardware_id")
+//			.create()
 //
-//		try await App(name: "MonitorControl",
-//					  bundleID: "photo.lostcause.MonitorControl",
-//					  purchaseID: "price_1O0nEN2dG3awZnDin23HBkkO",
-//					  subscriptionID: "price_1O0nEN2dG3awZnDiz9PsWekC",
-//					  on: database).save(on: database)
-//
-//		try await User(name: "Emory Dunn", email: "emory@emorydunn.com", externalID: "cus_OoA7qjmZMn7tfc").save(on: database)
+//		try await database.schema(Activation.schema)
+//			.id()
+//			.field("first_activation", .date, .required)
+//			.field("last_verified", .date)
+//			.field("deactivated_date", .date)
+//			.field("license_id", .uuid, .required, .references(LicenseModel.schema, "id"))
+//			.field("computer_id", .uuid, .required, .references(ComputerInfo.schema, "id"))
+//			.field("is_active", .bool, .required, .sql(.default(true)))
+//			.create()
 
 	}
 
@@ -87,5 +82,44 @@ struct DatabaseV1Migration: AsyncMigration {
 		try await database.schema(User.schema).delete()
 		try await database.schema(App.schema).delete()
 		try await database.schema(LicenseModel.schema).delete()
+	}
+}
+
+struct DatabaseV2Migration: AsyncMigration {
+	func prepare(on database: Database) async throws {
+		try await database.schema(ComputerInfo.schema)
+			.id()
+			.field("hardware_id", .string, .required)
+			.field("friendly_name", .string)
+			.field("model", .string, .required)
+			.field("os_version", .string, .required)
+			.unique(on: "hardware_id")
+			.create()
+
+		try await database.schema(Activation.schema)
+			.id()
+			.field("first_activation", .date, .required)
+			.field("last_verified", .date)
+			.field("deactivated_date", .date)
+			.field("license_id", .uuid, .required, .references(LicenseModel.schema, "id"))
+			.field("computer_id", .uuid, .required, .references(ComputerInfo.schema, "id"))
+			.field("is_active", .bool, .required, .sql(.default(true)))
+			.create()
+	}
+
+	func revert(on database: Database) async throws {}
+}
+
+struct DatabaseV3Migration: AsyncMigration {
+	func prepare(on database: Database) async throws {
+
+		try await database.schema(Activation.schema)
+			.field("verification_count", .int, .required, .sql(.default(0)))
+//			.deleteField("is_active")
+			.update()
+	}
+
+	func revert(on database: Database) async throws {
+
 	}
 }

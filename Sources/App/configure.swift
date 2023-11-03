@@ -4,6 +4,8 @@ import FluentSQLiteDriver
 import Leaf
 import Vapor
 import StripeKit
+import JWT
+import CommonCrypto
 
 // configures your application
 public func configure(_ app: Application) async throws {
@@ -17,10 +19,10 @@ public func configure(_ app: Application) async throws {
 	default:
 		app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
 	}
-//    app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
-//	app.databases.use(DatabaseConfigurationFactory.sqlite(.memory), as: .sqlite)
 
     app.migrations.add(DatabaseV1Migration())
+	app.migrations.add(DatabaseV2Migration())
+	app.migrations.add(DatabaseV3Migration())
 
     app.views.use(.leaf)
 
@@ -29,6 +31,9 @@ public func configure(_ app: Application) async throws {
 
 //	try await app.autoRevert() // Wipe the DB
 	try await app.autoMigrate() // Set up a new DB
+
+	try app.readJWTKeys()
+
 }
 
 extension Application {
