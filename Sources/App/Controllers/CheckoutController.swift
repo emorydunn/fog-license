@@ -41,7 +41,7 @@ struct CheckoutController: RouteCollection {
 		let subPrice = try await req.stripe.prices.retrieve(price: app.subscriptionID!, expand: nil)
 
 		let context = CheckoutContext(app.name,
-									  bundleID: app.bundleID,
+									  bundleID: app.bundleIdentifier,
 									  icon: "/images/\(app.name).png",
 									  purchasePrice: purchasePrice,
 									  subPrice: subPrice)
@@ -147,7 +147,6 @@ struct CheckoutController: RouteCollection {
 		guard let check = CheckoutIntent(app: app, price: purchasePrice) else {
 			throw Abort(.internalServerError, reason: "Could not create CheckoutIntent for \(purchasePrice.nickname ?? purchasePrice.id)")
 		}
-
 
 		return check
 	}

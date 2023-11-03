@@ -46,7 +46,7 @@ struct CheckoutIntent: Content {
 	let paymentOptions: PaymentOptions
 
 	init?(app: App, price: Price) {
-		self.bundleID = app.bundleID
+		self.bundleID = app.bundleIdentifier
 
 		guard
 			let purchaseAmount = price.unitAmount,

@@ -1,5 +1,6 @@
 @testable import App
 import XCTVapor
+import SharedModels
 
 final class AppTests: XCTestCase {
 
@@ -43,11 +44,11 @@ final class AppTests: XCTestCase {
 		try await configure(server)
 
 		try server.test(.POST, "/api/v1/apps") { req in
-			try req.content.encode(App.test, as: .json)
+			try req.content.encode(AppInfo.test, as: .json)
 		} afterResponse: { res in
 			XCTAssertEqual(res.status, .ok)
-			let newApp = try res.content.decode(App.self)
-			XCTAssertEqual(newApp.bundleID, "com.test.app")
+			let newApp = try res.content.decode(AppInfo.self)
+			XCTAssertEqual(newApp.bundleIdentifier, "com.test.app")
 		}
 	}
 
@@ -62,7 +63,7 @@ final class AppTests: XCTestCase {
 		let path = "/api/v1/apps"
 		try server.test(.GET, path) { res in
 			XCTAssertEqual(res.status, .ok)
-			let apps = try res.content.decode([App].self)
+			let apps = try res.content.decode([AppInfo].self)
 			XCTAssertEqual(apps.count, 1)
 		}
 	}
@@ -75,11 +76,11 @@ final class AppTests: XCTestCase {
 		let newApp = try await App(App.test, on: server.db)
 		try await newApp.save(on: server.db)
 
-		let path = "/api/v1/apps/\(newApp.bundleID)"
+		let path = "/api/v1/apps/\(newApp.bundleIdentifier)"
 		try server.test(.GET, path) { res in
 			XCTAssertEqual(res.status, .ok)
-			let newApp = try res.content.decode(App.self)
-			XCTAssertEqual(newApp.bundleID, "com.test.app")
+			let newApp = try res.content.decode(AppInfo.self)
+			XCTAssertEqual(newApp.bundleIdentifier, "com.test.app")
 		}
 	}
 
@@ -91,7 +92,7 @@ final class AppTests: XCTestCase {
 		let newApp = try await App(App.test, on: server.db)
 		try await newApp.save(on: server.db)
 
-		let path = "/api/v1/apps/\(newApp.bundleID)"
+		let path = "/api/v1/apps/\(newApp.bundleIdentifier)"
 		try server.test(.DELETE, path) { res in
 			XCTAssertEqual(res.status, .noContent)
 		}

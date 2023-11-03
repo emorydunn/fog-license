@@ -8,6 +8,8 @@
 import Foundation
 import Vapor
 import Fluent
+import SharedModels
+import StripeKit
 
 final class App: Model, Content {
 	static let schema = "application"
@@ -19,7 +21,7 @@ final class App: Model, Content {
 	var number: UInt8
 
 	@Field(key: "bundle_id")
-	var bundleID: String
+	var bundleIdentifier: String
 
 	@Field(key: "name")
 	var name: String
@@ -41,7 +43,7 @@ final class App: Model, Content {
 	init(name: String, bundleID: String, number: UInt8, activationCount: Int = 3, purchaseID: String, subscriptionID: String?) {
 		self.name = name
 		self.number = number
-		self.bundleID = bundleID
+		self.bundleIdentifier = bundleID
 		self.activationCount = activationCount
 		self.purchaseID = purchaseID
 		self.subscriptionID = subscriptionID
@@ -49,8 +51,8 @@ final class App: Model, Content {
 
 	init(name: String, bundleID: String, activationCount: Int = 3, purchaseID: String, subscriptionID: String?, on database: Database) async throws {
 		self.name = name
-		self.number = UInt8(try await App.query(on: database).count() + 1)
-		self.bundleID = bundleID
+		self.number = UInt8(try await App.query(on: database).max(\.$number) ?? 0 + 1)
+		self.bundleIdentifier = bundleID
 		self.activationCount = activationCount
 		self.purchaseID = purchaseID
 		self.subscriptionID = subscriptionID
@@ -58,16 +60,25 @@ final class App: Model, Content {
 
 	init(_ stub: Stub, on database: Database) async throws {
 		self.name = stub.name
-		self.number = UInt8(try await App.query(on: database).count() + 1)
-		self.bundleID = stub.bundleID
+		self.number = UInt8(try await App.query(on: database).max(\.$number) ?? 0 + 1)
+		self.bundleIdentifier = stub.bundleIdentifier
 		self.activationCount = stub.activationCount
 		self.purchaseID = stub.purchaseID
 		self.subscriptionID = stub.subscriptionID
 	}
 
+	init(_ stub: AppInfo, on database: Database) async throws {
+		self.name = stub.name
+		self.number = UInt8(try await App.query(on: database).max(\.$number) ?? 0 + 1)
+		self.bundleIdentifier = stub.bundleIdentifier
+		self.activationCount = stub.activationCount
+		self.purchaseID = stub.purchase.id
+		self.subscriptionID = stub.subscription?.id
+	}
+
 	struct Stub: Content {
 		let name: String
-		let bundleID: String
+		let bundleIdentifier: String
 		let activationCount: Int
 		let purchaseID: String
 		let subscriptionID: String?
@@ -91,14 +102,14 @@ extension App {
 	/// - Returns: An `App`, if one matches the query.
 	static func find(_ id: String?, on database: Database) async throws -> App? {
 		guard let id else {
-			database.logger.log(level: .debug, "Can't find app without an id")
+			database.logger.log(level: .warning, "Can't find app without an id")
 			return nil
 		}
 		
-		database.logger.log(level: .debug, "Finding app with bundle ID or name \(id)")
+		database.logger.log(level: .info, "Finding app with bundle ID or name \(id)")
 		return try await App.query(on: database)
 			.group(.or) { group in
-					group.filter(\.$bundleID == id)
+					group.filter(\.$bundleIdentifier == id)
 					group.filter(\.$name == id)
 			}
 			.first()
