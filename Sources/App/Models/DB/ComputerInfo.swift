@@ -10,6 +10,7 @@ import Fluent
 import Vapor
 
 final class ComputerInfo: Model {
+
 	static var schema = "computer_info"
 	
 	@ID(key: .id)
@@ -31,6 +32,15 @@ final class ComputerInfo: Model {
 	var activations: [Activation]
 
 	init() {}
+	
+	init(id: UUID? = nil, hardwareIdentifier: String, friendlyName: String? = nil, model: String, osVersion: String) {
+		self.id = id
+		self.hardwareIdentifier = hardwareIdentifier
+		self.friendlyName = friendlyName
+		self.model = model
+		self.osVersion = osVersion
+	}
+
 
 	static func find(hardwareIdentifier: String, on db: Database) async throws -> ComputerInfo? {
 		return try await ComputerInfo.query(on: db)

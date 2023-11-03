@@ -15,14 +15,12 @@ final class Activation: Model, Content {
 	@ID(key: .id)
 	var id: UUID?
 
-//	@Field(key: "first_activation")
 	@Timestamp(key: "first_activation", on: .create)
 	var firstActivation: Date?
 
 	@Timestamp(key: "deactivated_date", on: .delete)
 	var deactivatedDate: Date?
 
-//	@Field(key: "last_verified")
 	@Timestamp(key: "last_verified", on: .update)
 	var lastVerified: Date?
 
@@ -38,14 +36,34 @@ final class Activation: Model, Content {
 	init(firstActivation: Date) {
 		self.firstActivation = firstActivation
 	}
-
-
-	static func find(license: LicenseModel.IDValue, computer: ComputerInfo.IDValue, on db: Database) async throws -> Activation {
-		if let activation = try await Activation.query(on: db)
+	
+	/// Find an `Activation`, if it exists, for the given license and computer.
+	/// - Parameters:
+	///   - license: The ID of the `LicenseModel`.
+	///   - computer: The ID of the `ComputerInfo`.
+	///   - db: The `Database` to query.
+	/// - Returns: An `Activation` if found.
+	static func find(license: LicenseModel.IDValue, computer: ComputerInfo.IDValue, on db: Database) async throws -> Activation? {
+		return try await Activation.query(on: db)
 			.group(.and, { group in
 				group.filter(Activation.self, \.$license.$id == license)
 				group.filter(Activation.self, \.$computer.$id == computer)
-			}).first() {
+			})
+			.withDeleted()
+			.first()
+	}
+
+	/// Find an `Activation`, or create one, for the given license and computer.
+	/// - Parameters:
+	///   - license: The ID of the `LicenseModel`.
+	///   - computer: The ID of the `ComputerInfo`.
+	///   - db: The `Database` to query.
+	/// - Returns: An `Activation`.
+	static func find(license: LicenseModel.IDValue, computer: ComputerInfo.IDValue, on db: Database) async throws -> Activation {
+		if let activation = try await find(license: license,
+											computer: computer,
+										   on: db) {
+
 			return activation
 		}
 
@@ -57,9 +75,6 @@ final class Activation: Model, Content {
 
 		return activation
 	}
-
-//	@Field(key: "is_active")
-//	var isActive: Bool
 
 	init() {}
 }
