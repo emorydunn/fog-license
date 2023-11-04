@@ -31,8 +31,12 @@ struct LicenseController: RouteCollection {
 		routeGroup.group(":licenseID") { group in
 			group.delete(use: deactivateLicense)
 			group.get(use: fetch)
-			group.post("activation", use: activate)
-			group.delete("activation", use: deactivateMachine)
+
+			group.group("activation") { activation in
+				activation.post(use: activate)
+				activation.delete(use: deactivateMachine)
+			}
+
 		}
 
 	}
@@ -114,21 +118,14 @@ struct LicenseController: RouteCollection {
 	/// Once validation passes the computer info is saved and an `Activation` is created.
 	/// - Parameter req: The HTTP request
 	/// - Returns: A `SoftwareLicense` and a JWT token as the auth header.
+	/// - Throws: 403, 404
 	func activate(req: Request) async throws -> Response {
 
 		let license = try await LicenseModel.find(req: req)
 
 		// Ensure the license is active
 		guard license.isActive else {
-			throw Abort(.forbidden, reason: "License \(license.code.formatted(.hexBytes)) is not active.")
-		}
-
-		// Fetch the current activation count
-		let activationCount = try await license.activationCount(on: req.db)
-
-		// Check if we've reached the limit
-		guard activationCount < license.activationLimit else {
-			throw Abort(.forbidden, reason: "Activation limit \(license.activationLimit) reached for license \(license.code.formatted(.hexBytes))")
+			throw Abort(.forbidden, reason: "License '\(license.code.formatted(.integer))' is inactive.")
 		}
 
 		// Load the relationships for additional verification
@@ -141,7 +138,7 @@ struct LicenseController: RouteCollection {
 		guard
 			license.application.bundleIdentifier == bundleIdentifier
 		else {
-			throw Abort(.forbidden, reason: "Provided bundle identifier does not match the application's bundle identifier")
+			throw Abort(.forbidden, reason: "Provided bundle identifier does not match the application's bundle identifier.")
 		}
 
 		// Ensure the license code is valid (should also be done client side)
@@ -150,7 +147,7 @@ struct LicenseController: RouteCollection {
 		guard
 			license.code.isValid(for: license.application.number)
 		else {
-			throw Abort(.forbidden, reason: "License \(license.code.formatted(.hexBytes)) is not valid for application \(license.application.bundleIdentifier)")
+			throw Abort(.forbidden, reason: "Not a valid \(license.application.name) license code.")
 		}
 
 		return try await req.db.transaction { db in
@@ -175,13 +172,25 @@ struct LicenseController: RouteCollection {
 				try await activation.restore(on: db)
 			}
 
+			// Fetch the current activation count
+			let activationCount = try await license.activationCount(on: db)
+
+			req.logger.info("\(license.code.formatted(.hexBytes)) has \(activationCount) / \(license.activationLimit) activations")
+
+			// Check if we've reached the limit
+			// Including this activation, are we under the limit?
+			guard activationCount <= license.activationLimit else {
+				throw Abort(.forbidden, reason: "Activation limit of \(license.activationLimit) computers reached for license '\(license.code.formatted(.integer))'.")
+			}
+
 			req.logger.notice("Activated license \(license.code.formatted(.hexBytes))")
 
 			// The when the app should verify the license again
 			let expiration = Calendar.current.date(byAdding: .day, value: 5, to: activation.lastVerified ?? Date.now)
 			let payload = SignedActivation(bundleIdentifier: license.application.bundleIdentifier,
 										   expiration: expiration!,
-										   licenseCode: license.code)
+										   licenseCode: license.code,
+										   hardwareIdentifier: hardwareInfo.hardwareIdentifier)
 
 			let token = try req.jwt.sign(payload)
 
@@ -202,7 +211,11 @@ struct LicenseController: RouteCollection {
 		let license = try await LicenseModel.find(req: req)
 
 		// Decode the hardware from the body
-		let hardwareInfo = try await ComputerInfo.decode(request: req, updatingExisting: true, on: req.db)
+		guard 
+			let hardwareID = req.body.string,
+			let hardwareInfo = try await ComputerInfo.find(hardwareIdentifier: hardwareID, on: req.db)
+		else { return Response(status: .badRequest) }
+		//		let hardwareInfo = try await ComputerInfo.decode(request: req, updatingExisting: true, on: req.db)
 
 		// Find the activation, if it doesn't exist there's nothing to do
 		let activation: Activation? = try await Activation.find(license: try license.requireID(),
