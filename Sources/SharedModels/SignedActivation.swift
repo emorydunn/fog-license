@@ -16,6 +16,7 @@ public struct SignedActivation: JWTPayload {
 		case bundleIdentifier = "sub"
 		case expiration = "exp"
 		case licenseCode
+		case hardwareIdentifier
 	}
 
 	public var bundleIdentifier: SubjectClaim
@@ -24,10 +25,13 @@ public struct SignedActivation: JWTPayload {
 
 	public var licenseCode: LicenseCode
 
-	public init(bundleIdentifier: String, expiration: Date, licenseCode: LicenseCode) {
+	public var hardwareIdentifier: String
+
+	public init(bundleIdentifier: String, expiration: Date, licenseCode: LicenseCode, hardwareIdentifier: String) {
 		self.bundleIdentifier = .init(value: bundleIdentifier)
 		self.expiration = .init(value: expiration)
 		self.licenseCode = licenseCode
+		self.hardwareIdentifier = hardwareIdentifier
 	}
 
 	// Run any additional verification logic beyond
