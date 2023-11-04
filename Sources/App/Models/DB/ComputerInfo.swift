@@ -70,13 +70,17 @@ final class ComputerInfo: Model {
 	}
 
 	static func decode(request req: Request, updatingExisting update: Bool, on db: Database) async throws -> ComputerInfo {
-		let computer = try req.content.decode(ComputerInfo.self)
+		// Decode the hardware ID from the body
+		let hardwareIdentifier: String = try req.content.get(at: "hardwareIdentifier")
 
-		guard let info = try await find(hardwareIdentifier: computer.hardwareIdentifier, on: db) else {
-			return computer
+		// Look up the ID, if there isn't a machine decode the full body
+		guard let info = try await find(hardwareIdentifier: hardwareIdentifier, on: db) else {
+			return try req.content.decode(ComputerInfo.self)
 		}
 
-		if update {
+		// If updates are requested, attempt to decode the full body
+		// and update the properties, otherwise skip
+		if update, let computer = try? req.content.decode(ComputerInfo.self) {
 			info.friendlyName = computer.friendlyName
 			info.model = computer.model
 			info.osVersion = computer.osVersion

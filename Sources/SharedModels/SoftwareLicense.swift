@@ -47,11 +47,11 @@ extension SoftwareLicense {
 	public struct ActivationRequest: Codable {
 		public let bundleIdentifier: String
 		public let hardwareIdentifier: String
-		public let friendlyName: String
-		public let model: String
-		public let osVersion: String
+		public let friendlyName: String?
+		public let model: String?
+		public let osVersion: String?
 
-		public init(bundleIdentifier: String, hardwareIdentifier: String, computerName: String, computerModel: String, osVersion: String) {
+		public init(bundleIdentifier: String, hardwareIdentifier: String, computerName: String? = nil, computerModel: String? = nil, osVersion: String? = nil) {
 			self.bundleIdentifier = bundleIdentifier
 			self.hardwareIdentifier = hardwareIdentifier
 			self.friendlyName = computerName
@@ -67,7 +67,7 @@ extension SoftwareLicense {
 		public var isActive: Bool?
 		public var expiryDate: Date? = nil
 
-		public  init(bundleIdentifier: String, customerEmail: String, date: Date? = nil, isActive: Bool? = nil, expiryDate: Date? = nil) {
+		public init(bundleIdentifier: String, customerEmail: String, date: Date? = nil, isActive: Bool? = nil, expiryDate: Date? = nil) {
 			self.bundleIdentifier = bundleIdentifier
 			self.customerEmail = customerEmail
 			self.date = date
@@ -81,7 +81,7 @@ extension SoftwareLicense {
 
 public enum ActivatedLicense {
 	case activated(license: SoftwareLicense, activation: SignedActivation)
-	case licensed(license: SoftwareLicense)
+	case licensed(license: SoftwareLicense, activation: SignedActivation)
 	case inactive
 
 	/// Whether the machine is activated.
@@ -105,6 +105,28 @@ public enum ActivatedLicense {
 			return true
 		case .inactive:
 			return false
+		}
+	}
+
+	public var license: SoftwareLicense? {
+		switch self {
+		case .activated(let license, _):
+			return license
+		case .licensed(let license, _):
+			return license
+		case .inactive:
+			return nil
+		}
+	}
+
+	public var activation: SignedActivation? {
+		switch self {
+		case .activated(_, let activation):
+			return activation
+		case .licensed(_, let activation):
+			return activation
+		case .inactive:
+			return nil
 		}
 	}
 
