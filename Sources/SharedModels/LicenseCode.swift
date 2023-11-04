@@ -66,11 +66,19 @@ public struct LicenseCode: Codable, ExpressibleByIntegerLiteral, Identifiable, C
 	}
 
 	public init(integerLiteral value: IntegerLiteralType) {
-		self.init(UInt32(value))
+		self.init(UInt32(truncatingIfNeeded: value))
 	}
 
 
 	public init?(_ bytes: UInt8...) {
+		guard bytes.count == 4 else { return nil }
+		self.byte3 = bytes[3]
+		self.byte2 = bytes[2]
+		self.byte1 = bytes[1]
+		self.byte0 = bytes[0]
+	}
+
+	public init?(_ bytes: [UInt8]) {
 		guard bytes.count == 4 else { return nil }
 		self.byte3 = bytes[3]
 		self.byte2 = bytes[2]
@@ -111,7 +119,7 @@ public struct LicenseCode: Codable, ExpressibleByIntegerLiteral, Identifiable, C
 }
 
 extension LicenseCode {
-	public struct FormatStyle: Foundation.FormatStyle {
+	public struct FormatStyle: Foundation.FormatStyle, ParseableFormatStyle, ParseStrategy {
 
 		public enum CodeStyle: String, Codable, CaseIterable, Identifiable, CustomStringConvertible {
 
@@ -134,17 +142,63 @@ extension LicenseCode {
 		}
 
 		let style: CodeStyle
+		public var parseStrategy: FormatStyle {
+			FormatStyle(style: style)
+		}
 
-		public func format(_ value: LicenseCode) -> String {
+
+		public func format(_ value: LicenseCode?) -> String {
+			guard let value else { return "" }
 
 			switch style {
 			case .integer:
-				return "\(value.number)"
+				return String(value.number, radix: 10)
 			case .bytes:
 				return formatBytes(value, useHex: false)
 			case .hexBytes:
 				return formatBytes(value, useHex: true)
 			}
+		}
+
+		public func parse(_ value: String) -> LicenseCode? {
+
+			// Don't bother parsing an empty string
+			guard !value.isEmpty else {
+				return nil
+			}
+
+			// Number can be at most 10 digits long,
+			// otherwise it overflows UInt32
+			guard value.count <= 10 else {
+				return nil
+			}
+
+			switch style {
+			case .integer:
+				if let number = UInt32(value, radix: 10) {
+					return LicenseCode(number)
+				}
+				return nil
+			case .bytes:
+				let bytes = value
+					.components(separatedBy: " ")
+					.compactMap { value -> UInt8? in
+						UInt8(value, radix: 10)
+					}
+
+				return LicenseCode(bytes)
+
+			case .hexBytes:
+				let bytes = value
+					.components(separatedBy: " ")
+					.compactMap { value in
+						UInt8(value, radix: 16)
+					}
+
+				return LicenseCode(bytes)
+
+			}
+
 		}
 
 		func formatBytes(_ value: LicenseCode, useHex: Bool) -> String {
@@ -157,6 +211,7 @@ extension LicenseCode {
 			}
 			.joined(separator: " ")
 		}
+
 	}
 
 	public func formatted(_ style: FormatStyle.CodeStyle) -> String {
