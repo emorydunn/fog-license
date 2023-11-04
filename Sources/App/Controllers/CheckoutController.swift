@@ -31,11 +31,7 @@ struct CheckoutController: RouteCollection {
 	/// - Parameter req: The request.
 	/// - Returns: A checkout view.
 	func checkout(req: Request) async throws -> View {
-		guard
-			let app = try await App.find(req.parameters.get("appID"), on: req.db)
-		else {
-			throw Abort(.notFound)
-		}
+		let app: App = try await App.find(req.parameters.get("appID"), on: req.db)
 
 		let purchasePrice = try await req.stripe.prices.retrieve(price: app.purchaseID, expand: nil)
 		let subPrice = try await req.stripe.prices.retrieve(price: app.subscriptionID!, expand: nil)
@@ -136,11 +132,7 @@ struct CheckoutController: RouteCollection {
 	/// - Parameter req: The HTTP request.
 	/// - Returns: A `CheckoutIntent` used to set up a payment.
 	func checkoutIntentInfo(req: Request) async throws -> CheckoutIntent {
-		guard
-			let app = try await App.find(req.parameters.get("appID"), on: req.db)
-		else {
-			throw Abort(.notFound, reason: "App '\(req.parameters.get("appID") ?? "") not found")
-		}
+		let app: App = try await App.find(req.parameters.get("appID"), on: req.db)
 
 		let purchasePrice = try await req.stripe.prices.retrieve(price: app.purchaseID, expand: nil)
 
