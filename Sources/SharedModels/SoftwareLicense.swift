@@ -75,4 +75,37 @@ extension SoftwareLicense {
 			self.expiryDate = expiryDate
 		}
 	}
+
+
+}
+
+public enum ActivatedLicense {
+	case activated(license: SoftwareLicense, activation: SignedActivation)
+	case licensed(license: SoftwareLicense)
+	case inactive
+
+	/// Whether the machine is activated.
+	public var isActivated: Bool {
+		switch self {
+		case .activated:
+			return true
+		case .licensed:
+			return false
+		case .inactive:
+			return false
+		}
+	}
+
+	/// Whether the machine is licensed.
+	public var isLicensed: Bool {
+		switch self {
+		case .activated:
+			return true
+		case .licensed:
+			return true
+		case .inactive:
+			return false
+		}
+	}
+
 }
