@@ -64,11 +64,10 @@ public struct HardwareIdentifier: Hashable, Encodable {
 		return SHA256.hash(data: hardwareData)
 	}
 
-	public func hashDescription() -> String {
-		let hash = secureHash()
-
-		return hash
+	public func hashDescription(truncate: Bool = false, toCount count: Int = 4) -> String {
+		return secureHash()
 			.bytes()
+			.dropLast(truncate ? 32 - count : 0)
 			.map {
 				$0.formatted(.hex(uppercase: true, includePrefix: false))
 			}
