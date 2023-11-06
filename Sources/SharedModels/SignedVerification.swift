@@ -8,7 +8,7 @@
 import Foundation
 import JWTKit
 
-public struct SignedActivation: JWTPayload {
+public struct SignedVerification: JWTPayload {
 
 	// Maps the longer Swift property names to the
 	// shortened keys used in the JWT payload.
@@ -18,13 +18,18 @@ public struct SignedActivation: JWTPayload {
 		case licenseCode
 		case hardwareIdentifier
 	}
-
+	
+	/// The Bundle Identifier of the application.
 	public var bundleIdentifier: SubjectClaim
-
+	
+	/// The date at which _this_ verification expires and the code will need to be
+	/// verified again with the server. This is not any dates associated with the Activation.
 	public var expiration: ExpirationClaim
-
+	
+	/// The license code associated with the activation.
 	public var licenseCode: LicenseCode
-
+	
+	/// The Hardware Identifier of the machine associated with the activation.
 	public var hardwareIdentifier: String
 
 	public init(bundleIdentifier: String, expiration: Date, licenseCode: LicenseCode, hardwareIdentifier: String) {

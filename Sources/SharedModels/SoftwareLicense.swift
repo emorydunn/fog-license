@@ -80,8 +80,8 @@ extension SoftwareLicense {
 }
 
 public enum ActivatedLicense {
-	case activated(license: SoftwareLicense, activation: SignedActivation)
-	case licensed(license: SoftwareLicense, activation: SignedActivation)
+	case activated(license: SoftwareLicense, activation: SignedVerification)
+	case licensed(license: SoftwareLicense, activation: SignedVerification)
 	case inactive
 
 	/// Whether the machine is activated.
@@ -119,7 +119,7 @@ public enum ActivatedLicense {
 		}
 	}
 
-	public var activation: SignedActivation? {
+	public var activation: SignedVerification? {
 		switch self {
 		case .activated(_, let activation):
 			return activation

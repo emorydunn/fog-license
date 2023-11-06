@@ -29,16 +29,15 @@ struct LicenseController: RouteCollection {
 		routeGroup.get(use: index)
 		routeGroup.post(use: create)
 		routeGroup.group(":licenseID") { group in
-			group.delete(use: deactivateLicense)
 			group.get(use: fetch)
+			group.put(use: update)
+			group.delete(use: deactivateLicense)
 
 			group.group("activation") { activation in
 				activation.post(use: activate)
 				activation.delete(use: deactivateMachine)
 			}
-
 		}
-
 	}
 
 	func index(req: Request) async throws -> [SoftwareLicense] {
@@ -93,7 +92,23 @@ struct LicenseController: RouteCollection {
 		try await newModel.save(on: req.db)
 		return try await SoftwareLicense(newModel, on: req.db)
 	}
-	
+
+	func update(req: Request) async throws -> SoftwareLicense {
+		let license = try await LicenseModel.find(req: req)
+
+		let update = try req.content.decode(SoftwareLicense.self)
+
+		req.logger.notice("Updating license '\(license.code.formatted(.hexBytes))'")
+
+		license.isActive = update.isActive
+		license.expiryDate = update.expiryDate
+		license.activationLimit = update.activationLimit
+
+		try await license.save(on: req.db)
+
+		return try await SoftwareLicense(license, on: req.db)
+
+	}
 
 	func deactivateLicense(req: Request) async throws -> SoftwareLicense {
 
@@ -118,10 +133,10 @@ struct LicenseController: RouteCollection {
 	/// Once validation passes the computer info is saved and an `Activation` is created.
 	/// - Parameter req: The HTTP request
 	/// - Returns: A `SoftwareLicense` and a JWT token as the auth header.
-	/// - Throws: 403, 404
+	/// - Throws: 403
 	func activate(req: Request) async throws -> Response {
 
-		let license = try await LicenseModel.find(req: req)
+		let license = try await LicenseModel.find(req: req, errorStatus: .forbidden)
 
 		// Ensure the license is active
 		guard license.isActive else {
@@ -187,13 +202,14 @@ struct LicenseController: RouteCollection {
 
 			// The when the app should verify the license again
 			let expiration = Calendar.current.date(byAdding: .day, value: 5, to: activation.lastVerified ?? Date.now)
-			let payload = SignedActivation(bundleIdentifier: license.application.bundleIdentifier,
+			let payload = SignedVerification(bundleIdentifier: license.application.bundleIdentifier,
 										   expiration: expiration!,
 										   licenseCode: license.code,
 										   hardwareIdentifier: hardwareInfo.hardwareIdentifier)
 
 			let token = try req.jwt.sign(payload)
 
+			try await license.$subscription.load(on: req.db)
 			let softLicense = SoftwareLicense(license, activationCount: activationCount)
 			let response = Response(status: .accepted)
 			try response.content.encode(softLicense)
