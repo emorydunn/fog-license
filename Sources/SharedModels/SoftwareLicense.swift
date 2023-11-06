@@ -8,15 +8,26 @@
 import Foundation
 
 public struct SoftwareLicense: Codable, Identifiable, Hashable {
-	public init(code: LicenseCode, name: String, bundleIdentifier: String, customerName: String, customerEmail: String, date: Date, expiryDate: Date? = nil, isActive: Bool, activationLimit: Int, activationCount: Int) {
+	public init(code: LicenseCode, 
+				name: String,
+				bundleIdentifier: String,
+				customerName: String,
+				customerEmail: String,
+				date: Date,
+				expiryDate: Date? = nil,
+				isActive: Bool,
+				hasSubscription: Bool,
+				activationLimit: Int,
+				activationCount: Int) {
 		self.code = code
 		self.name = name
 		self.bundleIdentifier = bundleIdentifier
 		self.customerName = customerName
 		self.customerEmail = customerEmail
-		self.date = date
+		self.activationDate = date
 		self.expiryDate = expiryDate
 		self.isActive = isActive
+		self.isSubsribed = hasSubscription
 		self.activationLimit = activationLimit
 		self.activationCount = activationCount
 	}
@@ -30,10 +41,12 @@ public struct SoftwareLicense: Codable, Identifiable, Hashable {
 	public let customerName: String
 	public let customerEmail: String
 
-	public let date: Date
+	public let activationDate: Date
 	public var expiryDate: Date?
 
 	public var isActive: Bool
+	public var isSubsribed: Bool
+
 	public var activationLimit: Int
 	public let activationCount: Int
 
@@ -130,4 +143,8 @@ public enum ActivatedLicense {
 		}
 	}
 
+}
+
+extension SoftwareLicense {
+	
 }

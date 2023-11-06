@@ -155,6 +155,7 @@ extension SoftwareLicense: Content {
 
 		let user = try await license.$user.get(on: db)
 		let app = try await license.$application.get(on: db)
+		try await license.$subscription.load(on: db)
 
 		self.init(code: license.code,
 				  name: app.name,
@@ -164,6 +165,7 @@ extension SoftwareLicense: Content {
 				  date: license.activationDate,
 				  expiryDate: license.expiryDate,
 				  isActive: license.isActive,
+				  hasSubscription: license.subscription != nil,
 				  activationLimit: license.activationLimit,
 				  activationCount: activationCount)
 	}
@@ -177,6 +179,7 @@ extension SoftwareLicense: Content {
 				  date: license.activationDate,
 				  expiryDate: license.expiryDate,
 				  isActive: license.isActive,
+				  hasSubscription: license.subscription != nil,
 				  activationLimit: license.activationLimit,
 				  activationCount: activationCount)
 	}
