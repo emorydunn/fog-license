@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  App+JWT.swift
 //  
 //
 //  Created by Emory Dunn on 11/1/23.
@@ -14,8 +14,8 @@ extension Application {
 
 		let pem: String
 
-		let workingDir = URL(filePath: directory.workingDirectory)
-		let keyFile = URL(fileURLWithPath: "id_ecdsa", relativeTo: workingDir)
+		let keysDir = URL(filePath: directory.workingDirectory).appending(path: "Keys", directoryHint: .isDirectory)
+		let keyFile = URL(fileURLWithPath: "id_ecdsa", relativeTo: keysDir)
 
 		do {
 			pem = try String(contentsOf: keyFile)
@@ -25,7 +25,7 @@ extension Application {
 			let privateKey = P256.Signing.PrivateKey()
 			pem = privateKey.pemRepresentation
 
-			let pubFile = URL(fileURLWithPath: "id_ecdsa.pub", relativeTo: workingDir)
+			let pubFile = URL(fileURLWithPath: "id_ecdsa.pub", relativeTo: keysDir)
 
 			try privateKey.pemRepresentation.write(to: keyFile, atomically: true, encoding: .utf8)
 			try privateKey.publicKey.pemRepresentation.write(to: pubFile, atomically: true, encoding: .utf8)
