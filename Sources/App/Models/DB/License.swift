@@ -109,27 +109,27 @@ final class LicenseModel: Model, Content {
 extension LicenseModel {
 
 	@inlinable
-	static func find(code: UInt32, on db: Database) async throws -> LicenseModel {
+	static func find(code: UInt32, on db: Database, errorStatus: HTTPStatus = .notFound) async throws -> LicenseModel {
 		guard
 			let license = try await LicenseModel.query(on: db)
 				.filter(\.$code == LicenseCode(code))
 				.first()
 		else {
-			throw Abort(.notFound, reason: "No license with code '\(code)'")
+			throw Abort(errorStatus, reason: "License code '\(code)' is invalid")
 		}
 
 		return license
 	}
 
 	@inlinable
-	static func find(req: Request, parameter: String = "licenseID") async throws -> LicenseModel {
+	static func find(req: Request, parameter: String = "licenseID", errorStatus: HTTPStatus = .notFound) async throws -> LicenseModel {
 		guard
 			let number = req.parameters.get(parameter, as: UInt32.self)
 		else {
-			throw Abort(.badRequest, reason: "Missing query parameter '\(parameter) '")
+			throw Abort(.badRequest, reason: "Missing query parameter '\(parameter)'")
 		}
 
-		return try await find(code: number, on: req.db)
+		return try await find(code: number, on: req.db, errorStatus: errorStatus)
 	}
 }
 
