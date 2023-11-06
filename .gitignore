@@ -8,3 +8,4 @@ db.sqlite
 .swiftpm
 .env
 Keys/id*
+Public/images/*.png
