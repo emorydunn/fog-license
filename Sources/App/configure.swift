@@ -9,8 +9,8 @@ import CommonCrypto
 
 // configures your application
 public func configure(_ app: Application) async throws {
-    // uncomment to serve files from /Public folder
-     app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
+	// uncomment to serve files from /Public folder
+	app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
 	switch app.environment {
 	case .testing:
@@ -20,17 +20,14 @@ public func configure(_ app: Application) async throws {
 		app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
 	}
 
-    app.migrations.add(DatabaseV1Migration())
-	app.migrations.add(DatabaseV2Migration())
-	app.migrations.add(DatabaseV3Migration())
-	app.migrations.add(DatabaseV4Migration())
+	app.migrations.add(DatabaseV1Migration())
 
-    app.views.use(.leaf)
+	app.views.use(.leaf)
 
-    // register routes
-    try routes(app)
+	// register routes
+	try routes(app)
 
-//	try await app.autoRevert() // Wipe the DB
+	//	try await app.autoRevert() // Wipe the DB
 	try await app.autoMigrate() // Set up a new DB
 
 	try app.readJWTKeys()
