@@ -214,7 +214,7 @@ extension LicenseCode {
 
 	}
 
-	public func formatted(_ style: FormatStyle.CodeStyle) -> String {
+	public func formatted(_ style: FormatStyle.CodeStyle = .integer) -> String {
 		FormatStyle(style: style).format(self)
 	}
 
