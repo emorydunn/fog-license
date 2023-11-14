@@ -38,7 +38,7 @@ struct CheckoutController: RouteCollection {
 
 		let context = CheckoutContext(app.name,
 									  bundleID: app.bundleIdentifier,
-									  icon: "/images/\(app.name).png",
+									  icon: "/images/\(app.bundleIdentifier).png",
 									  purchasePrice: purchasePrice,
 									  subPrice: subPrice)
 

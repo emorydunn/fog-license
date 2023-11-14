@@ -27,7 +27,7 @@ final class LicenseModel: Model, Content {
 //	@Timestamp(key: "deactivated_date", on: .delete)
 //	var deactivatedDate: Date?
 
-	@Field(key: "date")
+	@Field(key: "activation_date")
 	var activationDate: Date
 
 	@OptionalField(key: "expiry_date")

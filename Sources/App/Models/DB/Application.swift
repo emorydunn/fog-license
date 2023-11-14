@@ -20,7 +20,7 @@ final class App: Model, Content {
 	@Field(key: "number")
 	var number: UInt8
 
-	@Field(key: "bundle_id")
+	@Field(key: "bundle_identifier")
 	var bundleIdentifier: String
 
 	@Field(key: "name")

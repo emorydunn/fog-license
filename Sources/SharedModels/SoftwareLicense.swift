@@ -7,13 +7,21 @@
 
 import Foundation
 
+/// The `SoftwareLicense` provides a reference to all of the metadata related to a license code.
+///
+/// The properties include customer info, expiration dates, subscription status, and activation limits.
+/// Any mutable property represents a value that can be modified and sent back to the server to update
+/// the database.
+///
+/// This information can be shown to a user to inform them of the status of a license. When used in this context
+/// the data should be treated as a cache, as the server state may differ, for instance in the number of activations.
 public struct SoftwareLicense: Codable, Identifiable, Hashable {
 	public init(code: LicenseCode, 
 				name: String,
 				bundleIdentifier: String,
 				customerName: String,
 				customerEmail: String,
-				date: Date,
+				activationDate: Date,
 				expiryDate: Date? = nil,
 				isActive: Bool,
 				hasSubscription: Bool,
@@ -24,10 +32,10 @@ public struct SoftwareLicense: Codable, Identifiable, Hashable {
 		self.bundleIdentifier = bundleIdentifier
 		self.customerName = customerName
 		self.customerEmail = customerEmail
-		self.activationDate = date
+		self.activationDate = activationDate
 		self.expiryDate = expiryDate
 		self.isActive = isActive
-		self.isSubsribed = hasSubscription
+		self.isSubscribed = hasSubscription
 		self.activationLimit = activationLimit
 		self.activationCount = activationCount
 	}
@@ -45,7 +53,7 @@ public struct SoftwareLicense: Codable, Identifiable, Hashable {
 	public var expiryDate: Date?
 
 	public var isActive: Bool
-	public var isSubsribed: Bool
+	public var isSubscribed: Bool
 
 	public var activationLimit: Int
 	public let activationCount: Int
@@ -92,8 +100,8 @@ extension SoftwareLicense {
 
 }
 
-public enum ActivatedLicense {
-	case activated(license: SoftwareLicense, activation: SignedVerification)
+public enum ActivatedLicense: Codable {
+	case activated(license: SoftwareLicense, activation: SignedVerification, token: String)
 	case licensed(license: SoftwareLicense, activation: SignedVerification)
 	case inactive
 
@@ -123,7 +131,7 @@ public enum ActivatedLicense {
 
 	public var license: SoftwareLicense? {
 		switch self {
-		case .activated(let license, _):
+		case .activated(let license, _, _):
 			return license
 		case .licensed(let license, _):
 			return license
@@ -134,7 +142,7 @@ public enum ActivatedLicense {
 
 	public var activation: SignedVerification? {
 		switch self {
-		case .activated(_, let activation):
+		case .activated(_, let activation, _):
 			return activation
 		case .licensed(_, let activation):
 			return activation
@@ -142,9 +150,30 @@ public enum ActivatedLicense {
 			return nil
 		}
 	}
+	
+	/// Determine whether the activation needs to be verified with the server.
+	public var needsVerification: Bool {
+		switch self {
+		case .activated(_, let activation, _):
+			return activation.isExpired
+		case .licensed:
+			return false
+		case .inactive:
+			return false
+		}
+	}
 
 }
 
-extension SoftwareLicense {
-	
+extension ActivatedLicense: CustomStringConvertible {
+	public var description: String {
+		switch self {
+		case .activated:
+			return "Activated License"
+		case .licensed:
+			return "Licensed"
+		case .inactive:
+			return "Inactive"
+		}
+	}
 }
