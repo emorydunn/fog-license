@@ -146,6 +146,8 @@ struct CheckoutController: RouteCollection {
 	/// Create a Payment Intent with Stripe and return the `clientSecret`
 	func createIntent(request: Request) async throws -> [String: String] {
 
+		request.logger.info("Creating payment intent")
+
 		// Parse the app from the URL
 		let app: App = try await App.find(request.parameters.get("appID"), on: request.db)
 
@@ -154,14 +156,14 @@ struct CheckoutController: RouteCollection {
 
 		let user = try await request.getOrCreateUser(with: checkoutCustomer.email, name: checkoutCustomer.name)
 
-		request.logger.log(level: .info, "Creating payment intent")
+		request.logger.info("Creating payment intent for \(user.name) to buy \(app.name)")
 
 		// Fetch the price info and create a payment intent with Stripe
 		let purchasePrice = try await request.stripe.prices.retrieve(price: app.purchaseID, expand: nil)
 		let intent = try await request.stripe.createPaymentIntent(by: user, for: purchasePrice)
 
 		guard let secret = intent.clientSecret else {
-			throw Abort(.badRequest)
+			throw Abort(.badRequest, reason: "Failed to create payment intent")
 		}
 
 		// Create a new receipt for the transaction
@@ -173,6 +175,8 @@ struct CheckoutController: RouteCollection {
 										  user: user,
 										  isActive: false,
 										  expiryDate: app.expirationDate())
+
+		request.logger.info("Created receipt and license for transaction")
 
 		// Ensure the whole checkout succeeds
 		try await request.db.transaction { db in

@@ -95,6 +95,7 @@ extension Request {
 	///   - name: The name to use if a `User` needs to be created. The name is _not_ used as part of the query.
 	/// - Returns: The Stripe Customer ID.
 	func getOrCreateUser(with email: String, name: String) async throws -> User {
+		logger.info("Searching for user with email address '\(email)'")
 		let user = try await User.query(on: db)
 						.filter(\.$email == email)
 						.first() ?? User(name: name, email: email)
