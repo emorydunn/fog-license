@@ -68,7 +68,7 @@ async function handleSubmit(e) {
     elements,
     clientSecret,
     confirmParams: {
-      return_url: "http://localhost:8080/app/" + appBundleID + "/complete",
+      return_url: "http://localhost:8080/checkout/complete",
     },
   });
 
@@ -105,7 +105,7 @@ async function getPaymentIntent() {
   };
 
   // Create the PaymentIntent and obtain clientSecret
-  const res = await fetch("/app/" + appBundleID + "/create-intent", {
+  const res = await fetch("/checkout/" + appBundleID + "/create-intent", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(formData),
