@@ -7,7 +7,16 @@ let package = Package(
 		.macOS(.v13)
 	],
 	products: [
-		.library(name: "License", targets: ["SharedModels"]),
+		.library(name: "LicenseModels", targets: ["SharedModels"]),
+		.library(name: "FogKit", targets: [
+			"FogKit",
+			"SharedModels"
+		]),
+		.library(name: "FogUI", targets: [
+			"FogUI",
+			"FogKit",
+			"SharedModels"
+		]),
 		.executable(name: "App", targets: ["App"])
 	],
 	dependencies: [
@@ -33,6 +42,16 @@ let package = Package(
 				]),
 
 		.testTarget(name: "ModelTests", dependencies: ["SharedModels"]),
+
+		.target(name: "FogKit", dependencies: [
+			"SharedModels",
+			.product(name: "JWTKit", package: "jwt-kit"),
+		]),
+
+		.target(name: "FogUI", dependencies: [
+			"SharedModels",
+			"FogKit"
+		]),
 
 		.executableTarget(
 			name: "App",
