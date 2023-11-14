@@ -8,7 +8,7 @@
 import Foundation
 import JWTKit
 
-public struct SignedVerification: JWTPayload {
+public struct SignedVerification: JWTPayload, Equatable {
 
 	// Maps the longer Swift property names to the
 	// shortened keys used in the JWT payload.
@@ -45,6 +45,16 @@ public struct SignedVerification: JWTPayload {
 	// call its verify method.
 	public func verify(using signer: JWTSigner) throws {
 		try self.expiration.verifyNotExpired()
+	}
+	
+	/// Verify whether the expiration has expired or not.
+	public var isExpired: Bool {
+		do {
+			try expiration.verifyNotExpired()
+			return false
+		} catch {
+			return true
+		}
 	}
 }
 
