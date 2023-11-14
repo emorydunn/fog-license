@@ -209,7 +209,7 @@ struct LicenseController: RouteCollection {
 
 			let token = try req.jwt.sign(payload)
 
-			try await license.$subscription.load(on: req.db)
+			try await license.$subscription.load(on: db)
 			let softLicense = SoftwareLicense(license, activationCount: activationCount)
 			let response = Response(status: .accepted)
 			try response.content.encode(softLicense)
