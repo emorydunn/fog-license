@@ -9,3 +9,4 @@ db.sqlite
 .env
 Keys/id*
 Public/images/*.png
+/run.fish
