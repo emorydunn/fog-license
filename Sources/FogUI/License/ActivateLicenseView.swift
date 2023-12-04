@@ -145,11 +145,11 @@ public struct ActivateLicenseView: View {
 				.multilineTextAlignment(.leading)
 				.padding(.horizontal)
 
-			HStack {
-				Button("Buy Now") {
-					NSWorkspace.shared.open(client.checkoutURL(for: product.bundleIdentifier))
-				}
-			}
+//			HStack {
+//				Button("Buy Now") {
+//					NSWorkspace.shared.open(client.checkoutURL(for: product.bundleIdentifier))
+//				}
+//			}
 
 		}
 		.padding()

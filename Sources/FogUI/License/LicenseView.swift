@@ -29,28 +29,39 @@ public struct LicenseView: View {
 			}
 		}
 		.toolbar {
-			ToolbarItem {
-				Menu {
-					if product.activationSate.isActivated {
-						Button("Deactivate Machine", action: deactivateMachine)
-					} else if product.activationSate.isLicensed {
-						Button("Activate Machine", action: activateMachine)
+
+			if product.activationSate.isLicensed {
+				ToolbarItem {
+					Menu {
+						if product.activationSate.isActivated {
+							Button("Deactivate Machine", action: deactivateMachine)
+						} else if product.activationSate.isLicensed {
+							Button("Activate Machine", action: activateMachine)
+						}
+
+						Button("Manage Activations") {
+
+						}
+						.disabled(true)
+
+						Divider()
+
+						Button("Remove License", action: removeLicense)
+							.enabled(product.activationSate.isLicensed)
+
+					} label: {
+						Text("Manage")
 					}
-
-					Button("Manage Activations") {
-
+				}
+			} else {
+				ToolbarItem {
+					Button("Buy Now") {
+						NSWorkspace.shared.open(client.checkoutURL(for: product.bundleIdentifier))
 					}
-					.disabled(true)
-
-					Divider()
-
-					Button("Remove License", action: removeLicense)
-						.enabled(product.activationSate.isLicensed)
-
-				} label: {
-					Text("Manage")
 				}
 			}
+
+
 		}
 
 	}
