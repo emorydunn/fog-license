@@ -10,7 +10,7 @@ The licensing model is designed to be flexible. A single license can be activate
 
 ## The License Code
 
-The license code is designed to be easy to enter by a user. Each code is a 32-bit number, stored as four 8-bit numbers. In order to provide a quick pass/fail validation a code is defined with the following byte sequence:
+The license code is designed to be easy to enter by a user. Each code is a four byte sequence represented as a single 32-bit number. There are two special bytes that allow for a quick offline validity test. In theory the sequence can be extended to any length if needed.
 
 0. The App ID
 1. Random 8-bit number
