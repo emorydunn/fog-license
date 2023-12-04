@@ -17,7 +17,7 @@ protocol CodeSeed {
 
 /// A 32-bit license code.
 ///
-/// A code is made up of three little endian bytes:
+/// A code is made up of four little endian bytes:
 ///
 /// 0. The App ID
 /// 1. Random 8-bit number
