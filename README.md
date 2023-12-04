@@ -55,3 +55,68 @@ The server includes a simple checkout page for each application that showing pri
 4. For each application a license code is generated and a subscription created, if requested
 5. User is redirected to the receipt page
 6. Stripe sends a `payment_intent.succeeded` web hook which activates the license
+
+# SwiftUI
+
+The `FogUI` library contains prebuilt views to manage an applications licensing. Configuring an app to be licensed is fairly straight forward.
+
+```swift
+import SwiftUI
+import FogKit
+import FogUI
+
+
+struct MyCoolApp: App {
+
+    // Create the client pointing to your server
+    var client = FogClient(server: URL(string: "http://localhost:8080")!)
+
+    // Create an empty product, it will be updated automatically based on the bundle identifier
+    var product = FogProduct()
+
+   var body: some Scene {
+
+       WindowGroup {
+           ContentView()
+            .environmentObject(product)
+            .environment(\.client, client)
+            .onAppear {
+                   // Refresh the product
+                   if product.isStale {
+                       product.refresh(using: client)
+                   }
+
+                   try? product.storeActivation()
+               }
+       }
+
+   }
+
+}
+```
+
+Now that the environment is set up you can build the rest of your application. Any controls that need to be activation locked can be disabled using the `.activationLocked()` view modifier:
+
+```swift
+Button("Export") { }
+    .activationLocked() // disabled if activation state is not `activated`
+```
+
+The framework also includes a view to handle license activation and management, just add a window to your app's main Scene:
+
+```swift
+    var body: some Scene {
+
+        ...
+
+        /// The standard licensing window
+        Window(Text("License"), id: "license") {
+            LicenseView()
+                .environmentObject(product) // Set the product in the environment
+                .environment(\.client, client) // Set the client in the environment
+        }
+
+    }
+```
+
+This view presents a text field for the user to enter a license code & information collected about their computer. After activation shows the license info & license management controls.
