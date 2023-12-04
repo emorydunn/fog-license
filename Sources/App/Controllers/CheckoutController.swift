@@ -38,7 +38,7 @@ struct CheckoutController: RouteCollection {
 
 		let context = CheckoutContext(app.name,
 									  bundleID: app.bundleIdentifier,
-									  icon: "/images/\(app.bundleIdentifier).png",
+									  icon: app.iconPath,
 									  purchasePrice: purchasePrice,
 									  subPrice: subPrice)
 
@@ -111,14 +111,30 @@ struct CheckoutController: RouteCollection {
 			paymentMethod = try await req.stripe.paymentMethods.retrieve(paymentMethod: id, expand: ["card"])
 		}
 
-		let items = try await receipt.$items
-			.get(on: req.db)
-			.map { item in
-				FullReceipt.Item(name: item.description,
-								 price: item.amount.formatted(.currency(code: paymentIntent.currency?.rawValue ?? "usd")),
-								 includesUpdates: item.requestedUpdates,
-								 updateStartDate: nil)
+		var items: [FullReceipt.Item] = []
+
+		for item in try await receipt.$items .get(on: req.db) {
+			let license = try await item.$license.get(on: req.db)
+			let app = try await license.$application.get(on: req.db)
+
+			let updateStartDate: Date?
+
+			if item.requestedUpdates {
+				updateStartDate = license.expiryDate
+			} else {
+				updateStartDate = nil
+			}
+
+			let receiptItem =  FullReceipt.Item(name: item.description,
+									price: item.formattedAmount(currency: paymentIntent.currency),
+									includesUpdates: item.requestedUpdates,
+									updateStartDate: updateStartDate,
+									iconPath: app.iconPath)
+
+			items.append(receiptItem)
+
 		}
+		
 		let context = FullReceipt(date: receipt.date,
 								  totalAmount: paymentIntent.formattedAmount,
 								  showProcessingMessage: showProcessingMessage, 

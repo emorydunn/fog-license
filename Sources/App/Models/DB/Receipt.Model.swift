@@ -8,6 +8,7 @@
 import Foundation
 import Vapor
 import Fluent
+import StripeKit
 
 final class ReceiptItem: Model {
 
@@ -40,6 +41,16 @@ final class ReceiptItem: Model {
 		self.amount = amount
 		self.description = description
 		self.requestedUpdates = requestedUpdates
+	}
+
+	func formattedAmount(currency code: String?) -> String {
+		let formatted = (amount / 100).formatted(.currency(code: code ?? "usd"))
+
+		return formatted
+	}
+
+	func formattedAmount(currency: Currency?) -> String {
+		formattedAmount(currency: currency?.rawValue)
 	}
 
 }

@@ -34,7 +34,9 @@
                 <div class="level-item">
                   <div>
                     <p class="heading">Date</p>
-                    <p class="subtitle">#date(date, "dd MMM, yyyy, HH:mm")</p>
+                    <p class="subtitle">
+                      #date(date, "dd MMM, yyyy 'at' HH:mm")
+                    </p>
                   </div>
                 </div>
 
@@ -54,18 +56,18 @@
               <div class="block">
                 #for(item in items):
                 <div class="media">
+                  #if(item.iconPath):
                   <figure class="media-left">
                     <p class="image is-48x48">
-                      <img
-                        src="http://localhost:8080/images/MonitorControl.png"
-                      />
+                      <img src="#(item.iconPath)" />
                     </p>
                   </figure>
+                  #endif
                   <div class="media-content">
                     <p class="has-text-weight-semibold">#(item.name)</p>
                     #if(item.includesUpdates):
                     <p class="is-size-7 is-italic">
-                      Updates start October 2024
+                      Updates start #date(item.updateStartDate, "dd MMM, yyyy")
                     </p>
                     #endif
                   </div>

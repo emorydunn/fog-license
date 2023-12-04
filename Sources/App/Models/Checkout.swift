@@ -88,6 +88,7 @@ struct FullReceipt: Content {
 		let price: String
 		let includesUpdates: Bool
 		let updateStartDate: Date?
+		let iconPath: String?
 	}
 
 	struct Payment: Content {

@@ -38,6 +38,10 @@ final class App: Model, Content {
 	@Children(for: \.$application)
 	var licenses: [LicenseModel]
 
+	var iconPath: String {
+		"/images/\(bundleIdentifier).png"
+	}
+
 	init() {}
 
 	init(name: String, bundleID: String, number: UInt8, activationCount: Int = 3, purchaseID: String, subscriptionID: String?) {
