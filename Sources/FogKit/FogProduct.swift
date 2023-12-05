@@ -140,19 +140,23 @@ public class FogProduct: ObservableObject {
 	
 	/// Attempt to verify the current activation with the server.
 	/// - Parameter client: The client to use to communicate with the server.
-	public func verifyLicense(using client: FogClient) async throws {
-		logger.info("Verifying activation with state \(self.activationSate)")
+	public func verifyLicense(using client: FogClient, forced: Bool = false) async throws {
+		logger.log("Verifying activation with state \(self.activationSate)")
 
-		guard activationSate.needsVerification else {
-			logger.info("Activation state \(self.activationSate) doesn't need to be verified right now.")
-			return
+		if forced == false {
+			guard activationSate.needsVerification else {
+				logger.info("Activation state \(self.activationSate) doesn't need to be verified right now.")
+				return
+			}
 		}
 
 		let state = try await client.licenses.activateLicense(activationSate)
 		await MainActor.run {
 			self.activationSate = state
 		}
-		
+
+		try storeActivation()
+
 		logger.info("Verified activation with new state \(self.activationSate)")
 	}
 
@@ -190,6 +194,8 @@ public class FogProduct: ObservableObject {
 		await MainActor.run {
 			self.activationSate = ActivatedLicense(license: license/*, activation: activation*/)
 		}
+
+		try storeActivation()
 
 		logger.info("Computer has successfully been deactivated.")
 	}
