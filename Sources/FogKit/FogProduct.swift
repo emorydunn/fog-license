@@ -86,13 +86,15 @@ public class FogProduct: ObservableObject {
 	
 	/// Read the activation from disk.
 	/// - Parameter client: The client to use to decode the JWT token.
-	public func readActivation(using client: FogClient) {
+	public func readActivation(using client: FogClient) async {
 		do {
 			logger.log("Reading activation state from \(self.licenseURL.path)")
 			let data = try Data(contentsOf: licenseURL)
 			let stored = try PropertyListDecoder().decode(ActivatedLicense.Stored.self, from: data)
 
-			self.activationSate = stored.createActivationState(with: client.signer)
+			await MainActor.run {
+				self.activationSate = stored.createActivationState(with: client.signer)
+			}
 
 			logger.log("Successfully read activation from disk, setting state to \(self.activationSate)")
 		} catch {
