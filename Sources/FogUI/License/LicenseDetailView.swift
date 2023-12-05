@@ -20,7 +20,10 @@ public struct LicenseDetailView: View {
 
 	let verificationExpiry: Date?
 
-	public init(license: SoftwareLicense, machineActivated: Bool, useLocalIcon: Bool, verificationExpiry: Date?) {
+	public init(license: SoftwareLicense,
+				machineActivated: Bool,
+				useLocalIcon: Bool,
+				verificationExpiry: Date?) {
 		self.license = license
 		self.machineActivated = machineActivated
 		self.useLocalIcon = useLocalIcon
@@ -79,7 +82,7 @@ public struct LicenseDetailView: View {
 							GridRow {
 								Text("Verification Expiry:")
 									.gridColumnAlignment(.trailing)
-								Text(verificationExpiry, format: .dateTime.year().month().day())
+								Text(verificationExpiry, format: .dateTime.year().month().day().hour().minute().second())
 							}
 						}
 						#endif
