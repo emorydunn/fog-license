@@ -11,7 +11,7 @@ import FogKit
 
 public struct EnvClient: EnvironmentKey {
 	public static var defaultValue: FogClient {
-		FogClient(server: URL(string: "defaultHost")!)
+		FogClient(server: URL(string: "defaultHost")!, signer: .unsecuredNone)
 	}
 }
 
