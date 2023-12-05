@@ -20,6 +20,8 @@ public struct LicenseDetailView: View {
 
 	let verificationExpiry: Date?
 
+	@State var hardwareInfo = HardwareIdentifier()
+
 	public init(license: SoftwareLicense,
 				machineActivated: Bool,
 				useLocalIcon: Bool,
@@ -107,15 +109,15 @@ public struct LicenseDetailView: View {
 			VStack(alignment: .leading) {
 				Text("\(license.name) is Registered")
 					.font(.headline)
-					.padding(.bottom, 8)
+					.padding(.bottom, 6)
 
 				switch (license.isActive, machineActivated) {
 				case (true, true):
-					Text("this computer is activated")
+					Text("\(hardwareInfo?.computerName ?? "This computer") is activated")
 				case (true, false):
-					Text("This computer is deactivated")
+					Text("\(hardwareInfo?.computerName ?? "This computer") is deactivated")
 				default:
-					Text("This license is inactive")
+					Text("\(hardwareInfo?.computerName ?? "This computer") is inactive")
 				}
 
 			}
