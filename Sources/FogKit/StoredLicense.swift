@@ -32,8 +32,11 @@ extension ActivatedLicense {
 			// If there's a token create an activated license
 			if let license, let token {
 				do {
-					// Attempt to decode the token. If verification fails fallback to a deactivated state
-					let activation = try signer.verify(token, as: SignedVerification.self)
+					// Attempt to decode the token. 
+					// We're not verifying the token as that will deactivate a machine who's
+					// token expired before reading. We want to keep the previous activation state
+					// and let the application handle verifying the token on its own.
+					let activation = try signer.unverified(token, as: SignedVerification.self)
 					return ActivatedLicense(license: license, activation: activation, token: token)
 				} catch {
 					return ActivatedLicense(license: license)
