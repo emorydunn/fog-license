@@ -10,9 +10,7 @@ import SwiftUI
 import FogKit
 
 public struct EnvClient: EnvironmentKey {
-	public static var defaultValue: FogClient {
-		FogClient(server: URL(string: "defaultHost")!, signer: .unsecuredNone)
-	}
+	public static var defaultValue: FogClient = FogClient(server: URL(string: "defaultHost")!, signer: .unsecuredNone)
 }
 
 @available(macOS 14.0, *)
