@@ -70,10 +70,10 @@ extension SoftwareLicense {
 		public let bundleIdentifier: String
 		public let hardwareIdentifier: String
 		public let friendlyName: String?
-		public let model: String?
-		public let osVersion: String?
+		public let model: String
+		public let osVersion: String
 
-		public init(bundleIdentifier: String, hardwareIdentifier: String, computerName: String? = nil, computerModel: String? = nil, osVersion: String? = nil) {
+		public init(bundleIdentifier: String, hardwareIdentifier: String, computerName: String? = nil, computerModel: String, osVersion: String) {
 			self.bundleIdentifier = bundleIdentifier
 			self.hardwareIdentifier = hardwareIdentifier
 			self.friendlyName = computerName

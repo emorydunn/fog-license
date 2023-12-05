@@ -8,6 +8,7 @@
 import Foundation
 import Fluent
 import Vapor
+import SharedModels
 
 final class ComputerInfo: Model {
 
@@ -69,21 +70,40 @@ final class ComputerInfo: Model {
 		return info
 	}
 
-	static func decode(request req: Request, updatingExisting update: Bool, on db: Database) async throws -> ComputerInfo {
+	static func decodeActivationRequest(from req: Request, updatingExisting update: Bool, on db: Database) async throws -> ComputerInfo {
+
+		req.logger.info("Decoding computer hardware identifier from request body")
+
 		// Decode the hardware ID from the body
 		let hardwareIdentifier: String = try req.content.get(at: "hardwareIdentifier")
 
 		// Look up the ID, if there isn't a machine decode the full body
 		guard let info = try await find(hardwareIdentifier: hardwareIdentifier, on: db) else {
-			return try req.content.decode(ComputerInfo.self)
+			req.logger.info("Couldn't find computer with id \(hardwareIdentifier), creating new computer from body.")
+			let info = try req.content.decode(SoftwareLicense.ActivationRequest.self)
+
+			return ComputerInfo(hardwareIdentifier: info.hardwareIdentifier,
+								friendlyName: info.friendlyName,
+								model: info.model,
+								osVersion: info.osVersion)
 		}
 
-		// If updates are requested, attempt to decode the full body
-		// and update the properties, otherwise skip
-		if update, let computer = try? req.content.decode(ComputerInfo.self) {
+		guard update else { return info }
+
+		req.logger.info("Updating info of \(info.friendlyName ?? info.model) from body.")
+
+		do {
+
+			// If updates are requested, attempt to decode the full body
+			// and update the properties, otherwise skip
+			let computer = try req.content.decode(SoftwareLicense.ActivationRequest.self)
 			info.friendlyName = computer.friendlyName
 			info.model = computer.model
 			info.osVersion = computer.osVersion
+
+		} catch {
+			req.logger.warning("Failed to decode computer from request body, not updating information")
+			req.logger.warning("\(error.localizedDescription)")
 		}
 
 		return info

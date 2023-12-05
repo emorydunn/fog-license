@@ -103,8 +103,14 @@ public struct LicenseController: EndpointController {
 			return activatedLicense
 		}
 
+		guard let hardwareInfo = HardwareIdentifier() else {
+			throw ServerError.hardwareInfo
+		}
 		let activationRequest = SoftwareLicense.ActivationRequest(bundleIdentifier: license.bundleIdentifier,
-																  hardwareIdentifier: activation.hardwareIdentifier)
+																  hardwareIdentifier: activation.hardwareIdentifier,
+																  computerName: hardwareInfo.computerName,
+																  computerModel: hardwareInfo.computerModel,
+																  osVersion: hardwareInfo.osVersion)
 
 		return try await activateLicense(license.code, activationRequest: activationRequest)
 

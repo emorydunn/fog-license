@@ -167,7 +167,7 @@ struct LicenseController: RouteCollection {
 
 		return try await req.db.transaction { db in
 			// Decode the computer info
-			let hardwareInfo = try await ComputerInfo.decode(request: req, updatingExisting: true, on: db)
+			let hardwareInfo = try await ComputerInfo.decodeActivationRequest(from: req, updatingExisting: true, on: db)
 
 			try await hardwareInfo.save(on: db)
 
