@@ -201,6 +201,7 @@ struct LicenseController: RouteCollection {
 			req.logger.notice("Activated license \(license.code.formatted(.hexBytes))")
 
 			// The when the app should verify the license again
+			// TODO: Make expiration configurable
 			let expiration = Calendar.current.date(byAdding: .day, value: 5, to: activation.lastVerified ?? Date.now)
 			let payload = SignedVerification(bundleIdentifier: license.application.bundleIdentifier,
 										   expiration: expiration!,
