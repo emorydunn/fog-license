@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import JWTKit
 
 /// The `SoftwareLicense` provides a reference to all of the metadata related to a license code.
 ///
@@ -97,83 +98,61 @@ extension SoftwareLicense {
 		}
 	}
 
-
 }
 
-public enum ActivatedLicense: Codable {
-	case activated(license: SoftwareLicense, activation: SignedVerification, token: String)
-	case licensed(license: SoftwareLicense, activation: SignedVerification)
-	case inactive
+public struct ActivatedLicense {
+
+	public let license: SoftwareLicense?
+	public let activation: SignedVerification?
+	public let token: String?
+
+	public init(license: SoftwareLicense, activation: SignedVerification, token: String) {
+		self.license = license
+		self.activation = activation
+		self.token = token
+	}
+
+	public init(license: SoftwareLicense) {
+		self.license = license
+		self.activation = nil
+		self.token = nil
+	}
+
+	public init() {
+		self.license = nil
+		self.activation = nil
+		self.token = nil
+	}
 
 	/// Whether the machine is activated.
 	public var isActivated: Bool {
-		switch self {
-		case .activated:
-			return true
-		case .licensed:
-			return false
-		case .inactive:
-			return false
-		}
+		activation != nil
 	}
 
 	/// Whether the machine is licensed.
 	public var isLicensed: Bool {
-		switch self {
-		case .activated:
-			return true
-		case .licensed:
-			return true
-		case .inactive:
-			return false
-		}
+		license != nil
 	}
 
-	public var license: SoftwareLicense? {
-		switch self {
-		case .activated(let license, _, _):
-			return license
-		case .licensed(let license, _):
-			return license
-		case .inactive:
-			return nil
-		}
-	}
-
-	public var activation: SignedVerification? {
-		switch self {
-		case .activated(_, let activation, _):
-			return activation
-		case .licensed(_, let activation):
-			return activation
-		case .inactive:
-			return nil
-		}
-	}
-	
 	/// Determine whether the activation needs to be verified with the server.
 	public var needsVerification: Bool {
-		switch self {
-		case .activated(_, let activation, _):
-			return activation.isExpired
-		case .licensed:
-			return false
-		case .inactive:
+		guard let isExpired = activation?.isExpired else {
 			return false
 		}
+
+		return isExpired
 	}
 
 }
 
 extension ActivatedLicense: CustomStringConvertible {
 	public var description: String {
-		switch self {
-		case .activated:
+		if isActivated {
 			return "Activated License"
-		case .licensed:
+		} else if isLicensed {
 			return "Licensed"
-		case .inactive:
-			return "Inactive"
 		}
+
+		return "Inactive"
 	}
 }

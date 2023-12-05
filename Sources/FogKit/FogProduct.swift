@@ -15,24 +15,42 @@ fileprivate let logger = Logger(subsystem: "FogKit", category: "FogProduct")
 public class FogProduct: ObservableObject {
 
 	@Published
-	public private(set) var activationSate: ActivatedLicense = .inactive
+	/// The current state of the license.
+	public private(set) var activationSate = ActivatedLicense()
 
 //	@Published
 //	public private(set) var app: AppInfo
-
+	
+	/// The name of the application.
+	///
+	/// - Note: Updated when refreshing from the server.
 	public private(set) var name: String
+	
+	/// The bundle identifier of the application.
 	public let bundleIdentifier: String
+	
+	/// The app number of the application used to validate license codes.
+	///
+	/// - Note: Updated when refreshing from the server.
 	public private(set) var appNumber: UInt8
 	
 	/// A boolean indicating whether the the app has been refreshed from the server. 
 	public private(set) var isStale = true
-
+	
+	/// Create a new `FogProduct` using an `AppInfo` object.
+	/// - Parameter app: The app to use as the basis of the product.
 	public init(app: AppInfo) {
 		self.name = app.name
 		self.bundleIdentifier = app.bundleIdentifier
 		self.appNumber = app.number
 	}
-
+	
+	/// Create a new `FogProduct` by reading the specified bundle.
+	///
+	/// - Important: The number must contain `CFBundleIdentifier` and `CFBundleName`.
+	/// - Parameters:
+	///   - bundle: The Bundle to read, by default the main bundle.
+	///   - appNumber: The app's number, defaults to 255.
 	public init(bundle: Bundle = .main, appNumber: UInt8 = UInt8.max) {
 		guard
 			let bundleIdentifier = bundle.bundleIdentifier,
@@ -47,16 +65,40 @@ public class FogProduct: ObservableObject {
 
 	}
 
+//	func licenseURL() -> URL {
+	var licenseURL: URL {
+//		try FileManager.default.url(for: .applicationSupportDirectory, in: .localDomainMask, appropriateFor: nil, create: true)
+		URL(filePath: "/Users/Shared/", directoryHint: .isDirectory)
+			.appending(components: name, "License.plist")
+	}
+
 	public func storeActivation() throws {
-		logger.log("Saving activation state to disk")
-//		let data = try PropertyListEncoder().encode(activationSate)
+		logger.log("Saving activation state to \(self.licenseURL.path)")
+		// Attempt to create the directory
+		try FileManager.default.createDirectory(at: licenseURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-		let licenseDir = try FileManager.default.url(for: .allLibrariesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+		let stored = ActivatedLicense.Stored(activationSate)
 
-		print(licenseDir.absoluteString)
+		let data = try PropertyListEncoder().encode(stored)
+
+		try data.write(to: licenseURL)
+	}
+
+	public func readActivation(using client: FogClient) {
+		do {
+			logger.log("Reading activation state from \(self.licenseURL.path)")
+			let data = try Data(contentsOf: licenseURL)
+			let stored = try PropertyListDecoder().decode(ActivatedLicense.Stored.self, from: data)
+
+			self.activationSate = stored.createActivationState(with: client.signer)
+		} catch {
+			logger.error("Could not read stored activation with error \(error.localizedDescription)")
+		}
 	}
 
 	// MARK: - Server Calls
+	/// Look up the application on the server and update local properties.
+	/// - Parameter client: The client to use to communicate with the server.
 	public func refresh(using client: FogClient) {
 		Task.detached {
 			logger.info("Refreshing \(self.isStale ? "stale " : "")product from server.")
@@ -70,7 +112,11 @@ public class FogProduct: ObservableObject {
 		}
 	}
 
-
+	
+	/// Attempt to activate a license code.
+	/// - Parameters:
+	///   - code: The `LicenseCode` to send to the server.
+	///   - client: The client to use to communicate with the server.
 	public func activateLicense(_ code: LicenseCode, using client: FogClient) async throws {
 
 		logger.info("Activating license code \(code.formatted()).")
@@ -87,9 +133,13 @@ public class FogProduct: ObservableObject {
 			self.activationSate = state
 		}
 
+		try storeActivation()
+
 		logger.info("Activated license with new state \(self.activationSate)")
 	}
-
+	
+	/// Attempt to verify the current activation with the server.
+	/// - Parameter client: The client to use to communicate with the server.
 	public func verifyLicense(using client: FogClient) async throws {
 		logger.info("Verifying activation with state \(self.activationSate)")
 
@@ -107,8 +157,7 @@ public class FogProduct: ObservableObject {
 	}
 
 	/// Attempt to reactivate this machine.
-	/// - Parameter activatedLicense: The license to verify.
-	/// - Returns: An `ActivatedLicense`.
+	/// - Parameter client: The client to use to communicate with the server.
 	public func reactivateLicense(using client: FogClient) async throws {
 
 		// Validate the license
@@ -124,8 +173,12 @@ public class FogProduct: ObservableObject {
 	}
 	
 	/// Deactivate the machine without removing the license.
+	/// - Parameter client: The client to use to communicate with the server.
 	public func deactivateMachine(using client: FogClient) async throws {
-		guard case .activated(let license, let activation, _) = activationSate else {
+		guard
+			let license = activationSate.license,
+			let activation = activationSate.activation
+		else {
 			logger.notice("This computer is not currently activated.")
 			return
 		}
@@ -135,34 +188,40 @@ public class FogProduct: ObservableObject {
 		try await client.licenses.deactivate(license: license.code, activation: activation)
 
 		await MainActor.run {
-			self.activationSate = .licensed(license: license, activation: activation)
+			self.activationSate = ActivatedLicense(license: license/*, activation: activation*/)
 		}
 
 		logger.info("Computer has successfully been deactivated.")
 	}
 	
 	/// Deactivate and remove the license from the machine.
+	/// - Parameter client: The client to use to communicate with the server.
 	public func removeLicense(using client: FogClient) async throws {
 
-		switch activationSate {
-		case .activated(let license, let activation, _):
+		if activationSate.isActivated {
 			logger.info("Deactivating machine and removing the license.")
-			try await client.licenses.deactivate(license: license.code, activation: activation)
-			
-			await MainActor.run {
-				activationSate = .inactive
+			if
+				let license = activationSate.license,
+				let activation = activationSate.activation
+			{
+				try await client.licenses.deactivate(license: license.code, activation: activation)
 			}
 
-		case .licensed:
+			await MainActor.run {
+				activationSate = ActivatedLicense()
+			}
+		} else if activationSate.isLicensed {
 			logger.info("Removing the current license.")
-			
-			await MainActor.run {
-				activationSate = .inactive
-			}
 
-		case .inactive:
+			await MainActor.run {
+				activationSate = ActivatedLicense()
+			}
+		} else {
 			logger.notice("This computer is not licensed.")
-			break
 		}
+
+		// Destroy the saved license on disk
+		try FileManager.default.removeItem(at: licenseURL)
 	}
 }
+

@@ -139,7 +139,7 @@ public struct LicenseController: EndpointController {
 			throw ServerError.invalidLicense
 		}
 
-		return .activated(license: softLicense, activation: activation, token: token)
+		return ActivatedLicense(license: softLicense, activation: activation, token: token)
 	}
 
 	public func deactivate(license: LicenseCode, activation: SignedVerification) async throws {
