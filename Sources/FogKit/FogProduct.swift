@@ -64,14 +64,14 @@ public class FogProduct: ObservableObject {
 		self.appNumber = appNumber
 
 	}
-
-//	func licenseURL() -> URL {
+	
+	/// The location of the license file.
 	var licenseURL: URL {
-//		try FileManager.default.url(for: .applicationSupportDirectory, in: .localDomainMask, appropriateFor: nil, create: true)
 		URL(filePath: "/Users/Shared/", directoryHint: .isDirectory)
 			.appending(components: name, "License.plist")
 	}
-
+	
+	/// Save the activation to disk.
 	public func storeActivation() throws {
 		logger.log("Saving activation state to \(self.licenseURL.path)")
 		// Attempt to create the directory
@@ -83,7 +83,9 @@ public class FogProduct: ObservableObject {
 
 		try data.write(to: licenseURL)
 	}
-
+	
+	/// Read the activation from disk.
+	/// - Parameter client: The client to use to decode the JWT token.
 	public func readActivation(using client: FogClient) {
 		do {
 			logger.log("Reading activation state from \(self.licenseURL.path)")
@@ -91,6 +93,8 @@ public class FogProduct: ObservableObject {
 			let stored = try PropertyListDecoder().decode(ActivatedLicense.Stored.self, from: data)
 
 			self.activationSate = stored.createActivationState(with: client.signer)
+
+			logger.log("Successfully read activation from disk, setting state to \(self.activationSate)")
 		} catch {
 			logger.error("Could not read stored activation with error \(error.localizedDescription)")
 		}
@@ -99,16 +103,14 @@ public class FogProduct: ObservableObject {
 	// MARK: - Server Calls
 	/// Look up the application on the server and update local properties.
 	/// - Parameter client: The client to use to communicate with the server.
-	public func refresh(using client: FogClient) {
-		Task.detached {
-			logger.info("Refreshing \(self.isStale ? "stale " : "")product from server.")
-			let app = try await client.apps.get(bundleIdentifier: self.bundleIdentifier)
+	public func refresh(using client: FogClient) async throws {
+		logger.info("Refreshing \(self.isStale ? "stale " : "")product from server.")
+		let app = try await client.apps.get(bundleIdentifier: self.bundleIdentifier)
 
-			await MainActor.run {
-				self.name = app.name
-				self.appNumber = app.number
-				self.isStale = false
-			}
+		await MainActor.run {
+			self.name = app.name
+			self.appNumber = app.number
+			self.isStale = false
 		}
 	}
 
@@ -145,7 +147,7 @@ public class FogProduct: ObservableObject {
 
 		if forced == false {
 			guard activationSate.needsVerification else {
-				logger.info("Activation state \(self.activationSate) doesn't need to be verified right now.")
+				logger.info("Activation state \(self.activationSate) doesn't need verification.")
 				return
 			}
 		}
