@@ -111,8 +111,10 @@ public struct LicenseEditView: View {
 	}
 }
 
+#if DEBUG
 #Preview {
 	Group {
 		LicenseEditView(.constant(.preview))
 	}
 }
+#endif

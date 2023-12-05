@@ -31,6 +31,8 @@ public struct GenerateLicenseView: View {
 	}
 }
 
+#if DEBUG
 #Preview {
 	GenerateLicenseView(app: .preview)
 }
+#endif

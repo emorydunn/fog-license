@@ -232,7 +232,6 @@ struct LicenseController: RouteCollection {
 			let hardwareID = req.body.string,
 			let hardwareInfo = try await ComputerInfo.find(hardwareIdentifier: hardwareID, on: req.db)
 		else { return Response(status: .badRequest) }
-		//		let hardwareInfo = try await ComputerInfo.decode(request: req, updatingExisting: true, on: req.db)
 
 		// Find the activation, if it doesn't exist there's nothing to do
 		let activation: Activation? = try await Activation.find(license: try license.requireID(),

@@ -190,9 +190,11 @@ public struct ActivateLicenseView: View {
 	}
 }
 
+#if DEBUG
 #Preview {
 	ActivateLicenseView(code: 22942805)
 		.environmentObject(FogProduct(app: .preview))
 		.frame(maxWidth: 450)
 		.padding()
 }
+#endif

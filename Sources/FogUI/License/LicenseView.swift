@@ -99,8 +99,9 @@ public struct LicenseView: View {
 	}
 
 }
-
+#if DEBUG
 #Preview {
 	LicenseView()
 		.environmentObject(FogProduct(app: .preview))
 }
+#endif

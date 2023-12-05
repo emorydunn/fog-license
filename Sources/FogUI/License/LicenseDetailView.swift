@@ -124,6 +124,8 @@ public struct LicenseDetailView: View {
 
 }
 
+#if DEBUG
 #Preview {
 	LicenseDetailView(license: .preview, machineActivated: true, useLocalIcon: true, verificationExpiry: Date())
 }
+#endif
