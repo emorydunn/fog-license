@@ -52,7 +52,7 @@ public class FogClient {
 	///   - server: The server's URL.
 	///   - signer: A signer initialized with the public key for the server.
 	public init(server: URL, signer: JWTSigner) {
-		logger.info("Creating FogClient for server \(server.absoluteString, privacy: .sensitive) signed with \(signer.algorithm.name, privacy: .public)")
+		logger.debug("Creating FogClient for server \(server.absoluteString, privacy: .sensitive) signed with \(signer.algorithm.name, privacy: .public)")
 		self.server = server
 		self.signer = signer
 		self.endpointURL = server.appending(components: "api", "v1")
