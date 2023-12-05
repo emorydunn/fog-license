@@ -22,7 +22,7 @@ public struct LicenseView: View {
 			if let license = product.activationSate.license {
 				LicenseDetailView(license: license,
 								  machineActivated: product.activationSate.isActivated,
-								  useLocalIcon: false,
+								  useLocalIcon: true,
 								  verificationExpiry: product.activationSate.activation?.expirationDate)
 			} else {
 				ActivateLicenseView()

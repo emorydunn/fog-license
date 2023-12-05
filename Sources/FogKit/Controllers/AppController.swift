@@ -62,7 +62,7 @@ public struct AppController: EndpointController {
 
 	public func icon(at iconPath: String) async throws -> CGImage? {
 		let iconURL = client.server.appending(components: iconPath)
-		logger.log("Downloading icon from \(iconURL.absoluteString)")
+		logger.log("Downloading icon from \(iconURL.path(percentEncoded: false))")
 
 		let request = URLRequest(url: iconURL)
 
