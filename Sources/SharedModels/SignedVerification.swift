@@ -56,6 +56,11 @@ public struct SignedVerification: JWTPayload, Equatable {
 			return true
 		}
 	}
+	
+	/// The date at which this verification will expire.
+	public var expirationDate: Date {
+		expiration.value
+	}
 }
 
 struct SignedTrial: JWTPayload {

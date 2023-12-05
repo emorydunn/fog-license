@@ -12,16 +12,19 @@ public struct LicenseDetailView: View {
 
 	@Environment(\.client) var client
 
-	var license: SoftwareLicense
-	
-	var machineActivated: Bool
+	let license: SoftwareLicense
+
+	let machineActivated: Bool
 
 	let useLocalIcon: Bool
 
-	public init(license: SoftwareLicense, machineActivated: Bool, useLocalIcon: Bool) {
+	let verificationExpiry: Date?
+
+	public init(license: SoftwareLicense, machineActivated: Bool, useLocalIcon: Bool, verificationExpiry: Date?) {
 		self.license = license
 		self.machineActivated = machineActivated
 		self.useLocalIcon = useLocalIcon
+		self.verificationExpiry = verificationExpiry
 	}
 
 	public var body: some View {
@@ -71,6 +74,16 @@ public struct LicenseDetailView: View {
 							}
 						}
 
+						#if DEBUG
+						if let verificationExpiry {
+							GridRow {
+								Text("Verification Expiry:")
+									.gridColumnAlignment(.trailing)
+								Text(verificationExpiry, format: .dateTime.year().month().day())
+							}
+						}
+						#endif
+
 					}
 					.padding(.leading)
 
@@ -112,5 +125,5 @@ public struct LicenseDetailView: View {
 }
 
 #Preview {
-	LicenseDetailView(license: .preview, machineActivated: true, useLocalIcon: true)
+	LicenseDetailView(license: .preview, machineActivated: true, useLocalIcon: true, verificationExpiry: Date())
 }
