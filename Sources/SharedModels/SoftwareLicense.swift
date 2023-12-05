@@ -145,11 +145,16 @@ public struct ActivatedLicense {
 
 	/// Determine whether the activation needs to be verified with the server.
 	public var needsVerification: Bool {
-		guard let isExpired = activation?.isExpired else {
+
+		// If the application isn't licensed there's nothing to verify
+		guard isLicensed else { return false }
+
+		//
+		guard let activation else {
 			return false
 		}
 
-		return isExpired
+		return activation.isExpired
 	}
 
 }
@@ -157,7 +162,7 @@ public struct ActivatedLicense {
 extension ActivatedLicense: CustomStringConvertible {
 	public var description: String {
 		if isActivated {
-			return "Activated License"
+			return "Activated License (\(activation!.expirationDate))"
 		} else if isLicensed {
 			return "Licensed"
 		}
