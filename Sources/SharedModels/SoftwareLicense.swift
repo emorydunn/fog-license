@@ -100,24 +100,33 @@ extension SoftwareLicense {
 
 }
 
+/// Represents the state of a license activation.
 public struct ActivatedLicense {
 
 	public let license: SoftwareLicense?
 	public let activation: SignedVerification?
 	public let token: String?
-
+	
+	/// Create an activated license.
+	/// - Parameters:
+	///   - license: The license for the activation.
+	///   - activation: The activation from the server
+	///   - token: The JWT token for the activation.
 	public init(license: SoftwareLicense, activation: SignedVerification, token: String) {
 		self.license = license
 		self.activation = activation
 		self.token = token
 	}
-
+	
+	/// Create a licensed, but deactivated, license.
+	/// - Parameter license: The license for the activation.
 	public init(license: SoftwareLicense) {
 		self.license = license
 		self.activation = nil
 		self.token = nil
 	}
-
+	
+	/// Create an inactive license. 
 	public init() {
 		self.license = nil
 		self.activation = nil
