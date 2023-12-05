@@ -233,5 +233,26 @@ public class FogProduct: ObservableObject {
 		// Destroy the saved license on disk
 		try FileManager.default.removeItem(at: licenseURL)
 	}
+	
+	/// Bootstrap the product by updating with the server and verifying activation.
+	///
+	/// 1. Refresh product info from the server
+	/// 2. Read the activation from disk
+	/// 3. Verify the license with the server
+	///
+	/// - Parameter client: The client to use to communicate with the server.
+	public func bootstrap(using client: FogClient) {
+		Task {
+			if isStale {
+				try await refresh(using: client)
+			}
+
+			// Read the verification
+			await readActivation(using: client)
+
+			// Now verify with the server
+			try await verifyLicense(using: client)
+		}
+	}
 }
 
