@@ -96,9 +96,6 @@ public struct LicenseDetailView: View {
 			}
 
 		}
-//		.navigationTitle("License Manager")
-		.frame(width: 400)
-		.padding()
 
 	}
 

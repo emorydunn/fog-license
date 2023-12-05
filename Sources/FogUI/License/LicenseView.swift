@@ -28,6 +28,8 @@ public struct LicenseView: View {
 				ActivateLicenseView()
 			}
 		}
+		.frame(width: 400)
+		.padding()
 		.toolbar {
 
 			if product.activationSate.isLicensed {
